@@ -1,0 +1,29 @@
+---
+thread_id: 19e4ab550e4e1c4c
+subject: Re: She Gets It from Her Parents ...
+message_count: 2
+first_message_date: Thu, 21 May 2026 06:23:57 -0700
+last_message_date: Thu, 21 May 2026 08:10:23 -0700
+labels: ['IMPORTANT', 'CATEGORY_PERSONAL']
+operator_replied: True
+---
+
+## Message 1
+**From:** {name} <{email}>
+**Date:** Thu, 21 May 2026 06:23:57 -0700
+
+Absolutely wonderful!
+
+## Message 2
+**From:** Yannis Catering <{email}>
+**Date:** Thu, 21 May 2026 08:10:23 -0700
+
+Thank you {name}!!!
+
+*YBG Catering*
+
+*12015 Scripps Highlands Drive*
+
+*San Diego, CA 92131*
+
+*{phone}*
