@@ -34,7 +34,10 @@ def _client():
         # Constraints of CA cert not marked critical". Windows schannel
         # accepts the same chain, so route through truststore.
         ctx = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-        _CLIENT = Anthropic(http_client=httpx.Client(verify=ctx, timeout=httpx.Timeout(300.0)))
+        _CLIENT = Anthropic(
+            http_client=httpx.Client(verify=ctx, timeout=httpx.Timeout(60.0)),
+            max_retries=3,
+        )
     return _CLIENT
 
 _SYSTEM = """You clean and redact email thread text for a labeling pipeline. You do two jobs in one pass: remove personal identifiers, and strip noise the exporter left behind.

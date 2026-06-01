@@ -93,7 +93,8 @@ def cmd_ingest(args):
     files = sorted(f for f in os.listdir(args.dir) if f.endswith(".md"))
     if not files:
         print(f"no .md files in {args.dir}"); return
-    ingested = flagged = skipped = 0
+    ingested = flagged = skipped = errored = 0
+    errored_ids: list[str] = []
     for fn in files:
         path = os.path.join(args.dir, fn)
         with open(path, encoding="utf-8") as f:
@@ -104,7 +105,16 @@ def cmd_ingest(args):
         if cx.execute("SELECT 1 FROM inquiries WHERE inquiry_id=?", (inquiry_id,)).fetchone():
             skipped += 1; continue
 
-        red_body, status, findings = redact.redact_thread(body, redactor=redactor)
+        try:
+            red_body, status, findings = redact.redact_thread(body, redactor=redactor)
+        except Exception as e:
+            # Skip rather than block the batch. Re-ingest these by re-running
+            # the same command — the dedupe check at top of the loop is a
+            # no-op for whatever already landed.
+            errored += 1
+            errored_ids.append(inquiry_id)
+            print(f"  ERRORED {inquiry_id}: {type(e).__name__}: {e} — skipping")
+            continue
         # Subject lines do NOT go through the model redactor. The model expects
         # full thread structure; a bare subject like "Quote request" gives it
         # nothing to redact and prompts it to invent a plausible thread. Use the
@@ -129,7 +139,10 @@ def cmd_ingest(args):
             flagged += 1
             print(f"  FLAGGED {inquiry_id}: {len(findings)} structured-PII survivor(s) — re-redact before labeling")
     cx.commit(); cx.close()
-    print(f"ingested {ingested} ({flagged} flagged, {skipped} already present)")
+    msg = f"ingested {ingested} ({flagged} flagged, {skipped} already present"
+    if errored:
+        msg += f", {errored} errored: {errored_ids}"
+    print(msg + ")")
 
 # ---------------------------------------------------------------- label
 def ask_enum(field, default):

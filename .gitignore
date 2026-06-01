@@ -6,3 +6,7 @@ token.json
 credentials.json
 threads_raw/
 threads/
+
+threads_batch2/
+
+threads_batch2_deferred/
