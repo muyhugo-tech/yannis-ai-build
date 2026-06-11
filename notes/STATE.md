@@ -131,3 +131,12 @@ foundation 2.2's engagement floor (no ignore bucket; every group size served).
 Direct Anthropic SDK, no frameworks. Prompt caching from first commit. One
 variable per eval cycle. Hugo runs all terminal commands; Claude edits files
 only. Confidence labels on every claim. Push back on scope creep by default.
+- **REMOTE IS PRIVATE, intentionally.** Pushed to a private GitHub remote
+  (muyhugo-tech). Do NOT flip public until the redaction leak is fixed AND
+  committed-content (not just labels.db) is audited for PII that leaked past
+  redaction. labels.db is gitignored and confirmed untracked; committed .py
+  and .md files are NOT yet PII-audited.
+- **GIT HISTORY STARTS AT ba21f8d.** Sessions 8 and 9 were both uncommitted
+  until 2026-06-10; there is no separate 0.787 baseline commit. The 0.787 ->
+  0.934 delta lives in this file's prose and the ba21f8d commit message, not
+  in two commits. Do not go looking for a baseline commit that never existed.
