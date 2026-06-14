@@ -8,6 +8,15 @@
 --   'unknown' added to channel and inquiry_type so the unknown-default discipline
 --   has a representable value. If rejected, drop 'unknown' from those two CHECKs
 --   and decide how a labeler records "could not determine channel/type".
+--
+-- AMENDMENT 2026-06-12 (migration 002): 'model_failed' added to the
+-- redaction_status CHECK. labeling/redact.py (Session C) returns this status
+-- when the model name-pass fails; the constraint was never widened to match,
+-- crashing the first batch-3 ingest. model_failed rows are blocked states
+-- like 'flagged' / 'names_unredacted': stored, surfaced by `label.py status`,
+-- un-labelable until re-redacted. Existing DBs: run
+-- migrations/002_add_model_failed_status.py. Fresh init from this file
+-- matches the migrated shape.
 
 PRAGMA foreign_keys = ON;
 
@@ -25,7 +34,7 @@ CREATE TABLE IF NOT EXISTS inquiries (
     date_range_end       TEXT,
     thread_text_redacted TEXT NOT NULL,              -- what the labeler reads
     redaction_status     TEXT NOT NULL DEFAULT 'pending'
-        CHECK (redaction_status IN ('pending','verified','flagged','names_unredacted')),
+        CHECK (redaction_status IN ('pending','verified','flagged','names_unredacted','model_failed')),
     redaction_findings   TEXT,                       -- JSON: residual structured-PII hits if flagged
     ingested_at          TEXT NOT NULL
 );

@@ -248,11 +248,12 @@ def cmd_status(_):
     ing  = cx.execute("SELECT COUNT(*) FROM inquiries").fetchone()[0]
     flag = cx.execute("SELECT COUNT(*) FROM inquiries WHERE redaction_status='flagged'").fetchone()[0]
     names = cx.execute("SELECT COUNT(*) FROM inquiries WHERE redaction_status='names_unredacted'").fetchone()[0]
+    mfail = cx.execute("SELECT COUNT(*) FROM inquiries WHERE redaction_status='model_failed'").fetchone()[0]
     lab  = cx.execute("SELECT COUNT(DISTINCT inquiry_id) FROM labels").fetchone()[0]
     unl  = cx.execute("""SELECT COUNT(*) FROM inquiries i LEFT JOIN labels l
                          ON l.inquiry_id=i.inquiry_id
                          WHERE l.label_id IS NULL AND i.redaction_status='verified'""").fetchone()[0]
-    print(f"ingested={ing}  labeled={lab}  flagged_redaction={flag}  names_unredacted={names}  verified_unlabeled={unl}")
+    print(f"ingested={ing}  labeled={lab}  flagged_redaction={flag}  names_unredacted={names}  model_failed={mfail}  verified_unlabeled={unl}")
     cx.close()
 
 def main():
