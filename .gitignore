@@ -10,3 +10,6 @@ threads/
 threads_batch2/
 
 threads_batch2_deferred/
+labeling/audit_names_local.txt
+threads*/
+*.db.bak*
