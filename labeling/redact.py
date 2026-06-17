@@ -47,11 +47,23 @@ _PAYMENT_RE = re.compile(r"(?<!\d)(?:\d[ -]?){13,16}(?!\d)")
 # Idempotent: if the slot is already {name}, the allowlist check passes it
 # through unchanged and the regex re-substitutes {name} -> {name} (no-op).
 
-# Self / staff senders that must NOT be redacted. Lowercased, substring match.
+# Self / staff senders that must NOT be redacted.
+#
+# 2026-06-11: extended with non-personal PLATFORM/VENDOR senders found by
+# probe_from_lines.py. These are not customer PII, and the sender slot is
+# channel signal the agent uses (Typeform notification vs. {name} cold open).
+# Rule for additions: the slot must identify an ORGANIZATION or system, never
+# a person. A vendor slot containing a personal name (e.g. a first name +
+# company) stays OUT and gets redacted to {name}.
+#
+# 2026-06-16 (F6): matching is NO LONGER a raw substring test. The old
+# `any(allowed in slot.lower())` passed the WHOLE slot whenever any entry
+# appeared anywhere in it, so a staff first-name token ("denise") waved
+# through a customer surname ("Denise Pihas" -> "Pihas" survived). See
+# is_allowlisted() below for the two-tier coverage rule that replaced it.
 _ALLOWLIST = (
-    "yannis catering",
-    "yanni's",
-    "yannis bar",
+    # self / staff -- single first-name tokens (survive alone; a surname
+    # residue redacts unless the FULL staff name is also listed below)
     "ybg",
     "hugo",
     "brenna",
@@ -59,6 +71,35 @@ _ALLOWLIST = (
     "jonah",
     "denise",
     "yanni",
+    # self / staff -- full names. Listed explicitly so the staff SURNAME
+    # survives (channel signal: operator-vs-customer in the From line).
+    # Without these, "Brenna Fineman" -> residue "fineman" -> redacts.
+    # A CUSTOMER who shares a staff first name ("Denise <other-surname>")
+    # still redacts, because only these exact full names are covered.
+    "yannis catering",
+    "yanni's",
+    "yannis bar",
+    "brenna fineman",
+    "jonathan gutierrez",
+    "yannis pihas",
+    "denise pihas",
+    # platforms / vendors / newsletters -- exact org slot strings as they
+    # appear in real From lines (Option A: explicit phrases, not a noise-word
+    # tolerance rule). Brittle by design: a new variant leaks, the probe
+    # catches it, you add one line. That visibility is the point for a PII
+    # gate. Stems alone ("typeform") are kept for bare-slot variants.
+    "typeform",
+    "typeform notifications",
+    "toast sites",
+    "toast sites forms",
+    "truereview",
+    "unifirst",
+    "hospitality headline",
+    "new york times",
+    "the new york times",
+    "weddingpro",
+    "office us",
+    "business manager",
 )
 
 # Capture: (1) the header label + trailing space, (2) the display-name slot,
@@ -68,15 +109,88 @@ _HEADER_RE = re.compile(
 )
 
 
+# --- F6: two-tier allowlist coverage ----------------------------------------
+# The allowlist mixes two kinds of entry that need OPPOSITE matching:
+#
+#   single-token staff first names  ("hugo", "denise", "yanni", ...)
+#       -> match only as a STANDALONE slot token. "denise pihas" must NOT be
+#          covered by "denise"; the residue "pihas" forces redaction.
+#
+#   multi-word org phrases  ("new york times", "toast sites", "office us", ...)
+#       -> match as a WHOLE PHRASE. Shattering them into loose tokens would
+#          allowlist standalone "us" / "manager" / "office", a real hole.
+#
+# A slot is allowlisted iff it is FULLY consumed with ZERO residue by some
+# combination of (whole org-phrase matches) + (single-token matches). Any
+# leftover token (a customer surname) means the slot is NOT allowlisted.
+#
+# Normalization (_norm_token): lowercase, drop apostrophes, strip surrounding
+# punctuation. This is why "Yanni's" in a slot resolves against the entry
+# "yannis" / "yanni's" -- the apostrophe is normalized away on both sides.
+
+def _norm_token(tok: str) -> str:
+    """Lowercase, remove apostrophes, strip surrounding punctuation."""
+    tok = tok.lower().replace("'", "").replace("\u2019", "")
+    return tok.strip(".,;:\"'()<>[]")
+
+
+def _norm_slot_tokens(slot: str) -> list[str]:
+    """Split a slot into normalized, non-empty tokens.
+    Commas are treated as separators so quoted 'Lastname, First' slots
+    tokenize the same as 'First Lastname'."""
+    raw = re.split(r"[\s,]+", slot.strip())
+    return [t for t in (_norm_token(r) for r in raw) if t]
+
+
+# Derive the two tiers from _ALLOWLIST once, at import.
+_ALLOWLIST_SINGLE = frozenset(
+    _norm_token(entry) for entry in _ALLOWLIST if " " not in entry
+)
+_ALLOWLIST_PHRASES = tuple(
+    tuple(_norm_token(t) for t in entry.split())
+    for entry in _ALLOWLIST if " " in entry
+)
+
+
+def is_allowlisted(slot: str) -> bool:
+    """True iff the display-name slot is FULLY covered (zero residue) by
+    allowlisted org phrases and/or single staff tokens.
+
+    A bare staff first name ("Denise") is covered and survives. The same
+    name with a surname ("Denise Pihas") leaves a residue token ("pihas")
+    and is NOT covered, so the slot redacts to {name}. This is the F6 fix:
+    the old substring test waved the whole slot through on a first-name hit.
+
+    SHARED: probe_from_lines.py imports this so the probe judges leaks with
+    the exact same rule the redactor enforces. If they ever diverge, the
+    probe lies (which is how F6 hid: the probe shared the old blind spot)."""
+    tokens = _norm_slot_tokens(slot)
+    if not tokens:
+        return False
+    # Consume whole org/full-name phrases, longest first so a longer phrase
+    # wins over a shorter overlapping one. Matching is ORDER-INDEPENDENT
+    # (multiset subset), not sequential: real slots appear both as
+    # "Denise Pihas" and comma-reversed "Pihas, Denise" (the quoted
+    # Lastname,First format the probe found). A phrase is consumed if every
+    # one of its tokens is present in the remaining slot tokens, regardless
+    # of position; those token occurrences are then removed.
+    remaining = list(tokens)
+    for phrase in sorted(_ALLOWLIST_PHRASES, key=len, reverse=True):
+        if all(remaining.count(t) >= phrase.count(t) for t in set(phrase)):
+            for t in phrase:
+                remaining.remove(t)
+    # Whatever's left must each be a single-token allowlist entry.
+    return all(t in _ALLOWLIST_SINGLE for t in remaining)
+
+
 def _redact_header_match(m: re.Match) -> str:
     label, slot, bracket = m.group(1), m.group(2), m.group(3)
     slot_clean = slot.strip()
     # Already redacted — leave it (idempotency).
     if slot_clean == "{name}":
         return m.group(0)
-    # Allowlisted self/staff sender — leave it.
-    low = slot_clean.lower()
-    if any(allowed in low for allowed in _ALLOWLIST):
+    # Allowlisted self/staff/org sender — leave it (F6 two-tier coverage).
+    if is_allowlisted(slot_clean):
         return m.group(0)
     # Otherwise it's a customer display-name — redact the slot.
     return f"{label}{TOKENS['name']}{bracket}"
