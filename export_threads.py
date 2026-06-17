@@ -3,14 +3,29 @@ Gmail thread exporter for Yanni's catering inquiry research.
 
 Pulls inquiry threads from ybgcatering@gmail.com, strips quoted reply chains,
 applies light PII redaction (emails, phones, URLs), and writes each thread
-to a single markdown file under threads/.
+to a single markdown file under the chosen output folder.
 
 Read-only Gmail access. Cannot modify, delete, or send mail.
+
+2026-06-12 (Session D): date window, output folder, and max-results moved
+from hardcoded constants to CLI args (--after/--before/--out/--max).
+
+2026-06-12 (option C, F2+F3): text processing moved to export_text.py
+(stdlib-only, testable from the Anthropic venv). Fixes proven on thread
+18da9f17eb7c769d: inline quote-chain stripping for single-line HTML-collapsed
+bodies, block-tag newline restoration, entity decoding, BOM/zero-width
+stripping. The redaction path (labeling/redact.py import) is UNTOUCHED.
+
+Usage (run from repo root, .venv -- the Google one):
+    python export_threads.py --after 2024/01/01 --before 2024/04/01 \
+        --out threads_batch3 --max 40
 """
 
+import argparse
 import base64
 import os
 import re
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -18,6 +33,10 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
+
+# Text processing: ONE implementation, in export_text.py (F2/F3 fixes live
+# there with their tests). This module only composes it.
+from export_text import clean_body, html_to_text
 
 # ---------------------------------------------------------------------------
 # Config
@@ -27,17 +46,14 @@ SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 CREDENTIALS_FILE = "credentials.json"
 TOKEN_FILE = "token.json"
 INTERNAL_ADDRESSES_FILE = "internal_addresses.txt"
-OUTPUT_DIR = Path("threads_batch2")  # batch 2 -- separate folder from batch 1
-MAX_THREADS = 80  # batch 2: pull a surplus, drop noise, keep ~50 labelable
+
+# Gmail date format for after:/before: query parts. before: is EXCLUSIVE.
+GMAIL_DATE_RE = re.compile(r"^\d{4}/\d{2}/\d{2}$")
 
 # Base Gmail query. Filters at the server side for inbound traffic to the
 # catering inbox, excluding clear-noise sources. Internal staff addresses
-# are appended dynamically from internal_addresses.txt.
-#
-# Date window for batch 2: 2025-01-01 through 2025-11-30 (Gmail before: is
-# exclusive). December excluded -- it is the documented seasonal outlier
-# (elevated patio minimums, holiday-party mix). Pull it as its own batch if
-# wanted.
+# are appended dynamically from internal_addresses.txt. Date window is
+# appended from --after/--before.
 BASE_QUERY_PARTS = [
     "in:anywhere",
     "to:ybgcatering@gmail.com",
@@ -51,8 +67,6 @@ BASE_QUERY_PARTS = [
     "OR resy.com OR yelp.com OR mailchimp.com)",
     # Social platforms -- pure notification noise, never customer inquiries.
     "-from:(tiktok.com OR tiktokv.com OR facebookmail.com OR linkedin.com)",
-    "after:2025/01/01",
-    "before:2025/12/01",
 ]
 
 
@@ -76,9 +90,12 @@ def load_internal_addresses() -> list[str]:
     return addresses
 
 
-def build_query() -> str:
-    """Build the full Gmail query, appending internal-address exclusions."""
+def build_query(after: str, before: str) -> str:
+    """Build the full Gmail query: base parts + date window + internal
+    address exclusions."""
     parts = list(BASE_QUERY_PARTS)
+    parts.append(f"after:{after}")
+    parts.append(f"before:{before}")
     internal = load_internal_addresses()
     if internal:
         internal_filter = " OR ".join(internal)
@@ -117,45 +134,25 @@ def get_gmail_service():
 # ---------------------------------------------------------------------------
 # Redaction
 # ---------------------------------------------------------------------------
+# 2026-06-11: the exporter's private regex copy is GONE. It silently diverged
+# from labeling/redact.py (no header display-name pass) and caused the
+# customer-name leak fixed in Session C. One redaction pipeline, one file:
+# labeling/redact.py. This module only imports it.
+#
+# deterministic_redact() runs over the FULLY ASSEMBLED markdown (not per
+# fragment) because redact_headers() matches the '**From:** name <email>'
+# line shape, which only exists after assembly.
+#
+# redact.py is stdlib-only (re), so importing it from the Google-API .venv
+# is safe. Path assumption: labeling/ is a sibling of this script.
 
-EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
-PHONE_RE = re.compile(
-    r"(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}"
-)
-URL_RE = re.compile(r"https?://\S+|www\.\S+")
-
-
-def redact(text: str) -> str:
-    """Replace emails, phones, and URLs with placeholders. Names not handled."""
-    text = EMAIL_RE.sub("{email}", text)
-    text = PHONE_RE.sub("{phone}", text)
-    text = URL_RE.sub("{url}", text)
-    return text
+sys.path.insert(0, str(Path(__file__).resolve().parent / "labeling"))
+from redact import deterministic_redact  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
 # Email parsing
 # ---------------------------------------------------------------------------
-
-QUOTED_LINE_RE = re.compile(
-    r"^(>+|On .* wrote:|From: .*|Sent: .*|To: .*|Subject: .*)",
-    re.MULTILINE,
-)
-
-
-def strip_quoted_replies(body: str) -> str:
-    """Cut everything from the first quoted-reply marker onward.
-
-    Heuristic and imperfect, but catches the most common Gmail/Outlook patterns.
-    """
-    lines = body.splitlines()
-    cleaned = []
-    for line in lines:
-        if QUOTED_LINE_RE.match(line.strip()):
-            break
-        cleaned.append(line)
-    return "\n".join(cleaned).strip()
-
 
 def decode_body(part) -> str:
     """Extract a text/plain or text/html body from a Gmail message part."""
@@ -175,10 +172,12 @@ def extract_plain_text(payload) -> str:
         if text:
             return text
 
-    # Fallback: take HTML and strip tags crudely.
+    # Fallback: HTML body through the F3 pipeline (block tags -> newlines,
+    # tag strip, entity decode, BOM/zero-width cleanup). Replaces the old
+    # crude tag-strip that collapsed bodies onto one line and left &nbsp;
+    # literals in exports.
     if payload.get("mimeType") == "text/html":
-        html = decode_body(payload)
-        return re.sub(r"<[^>]+>", "", html)
+        return html_to_text(decode_body(payload))
 
     return ""
 
@@ -188,6 +187,25 @@ def header_value(headers, name):
         if h["name"].lower() == name.lower():
             return h["value"]
     return ""
+
+
+def collect_attachment_exts(payload) -> list[str]:
+    """Walk a Gmail payload tree, return extensions of attachment parts.
+
+    A part is an attachment if it carries a filename. We emit EXTENSIONS
+    ONLY, never filenames: customer file names are a PII channel ('{name}
+    Wedding Contract.pdf') that the deterministic redaction layer cannot
+    close. Count + extension preserves the 'something was here' signal
+    (fixing the silent body-drop defect) with zero new PII surface.
+    """
+    exts = []
+    filename = payload.get("filename", "")
+    if filename:
+        dot = filename.rfind(".")
+        exts.append(filename[dot:].lower() if dot != -1 else "(no extension)")
+    for part in payload.get("parts", []) or []:
+        exts.extend(collect_attachment_exts(part))
+    return exts
 
 
 # ---------------------------------------------------------------------------
@@ -215,10 +233,14 @@ def export_thread(service, thread_id: str, output_dir: Path) -> dict:
         for m in messages
     )
 
-    out_lines = [
+    # Frontmatter is STRUCTURAL and stays out of the redaction pass:
+    # thread_id is the filename and join key; a digit-heavy id would get
+    # eaten by the payment-run regex (caught in testing). Only the subject
+    # is customer-supplied text, so it alone gets redacted here.
+    frontmatter = [
         "---",
         f"thread_id: {thread_id}",
-        f"subject: {redact(first_subject)}",
+        f"subject: {deterministic_redact(first_subject)}",
         f"message_count: {len(messages)}",
         f"date_range: {first_date} / {last_date}",
         f"labels: {labels}",
@@ -227,25 +249,47 @@ def export_thread(service, thread_id: str, output_dir: Path) -> dict:
         "",
     ]
 
+    msg_lines = []
     for i, msg in enumerate(messages, start=1):
         headers = msg["payload"]["headers"]
         sender = header_value(headers, "From")
         date = header_value(headers, "Date")
         body = extract_plain_text(msg["payload"])
-        body = strip_quoted_replies(body)
-        body = redact(body)
-        sender_redacted = redact(sender)
+        # F2: line-based quote pass + inline backstop for collapsed bodies.
+        body = clean_body(body)
+        att_exts = collect_attachment_exts(msg["payload"])
 
-        out_lines.append(f"## Message {i}")
-        out_lines.append(f"**From:** {sender_redacted}")
-        out_lines.append(f"**Date:** {date}")
-        out_lines.append("")
-        out_lines.append(body if body else "_(no body extracted)_")
-        out_lines.append("")
+        msg_lines.append(f"## Message {i}")
+        msg_lines.append(f"**From:** {sender}")
+        msg_lines.append(f"**Date:** {date}")
+        msg_lines.append("")
+        if body:
+            msg_lines.append(body)
+        elif att_exts:
+            # Body-drop fix: attachment-only / image-only messages used to
+            # read as '_(no body extracted)_' with no hint anything existed.
+            msg_lines.append(
+                f"_(no text body; {len(att_exts)} attachment(s): "
+                f"{', '.join(att_exts)})_"
+            )
+        else:
+            msg_lines.append("_(no body extracted)_")
+        if body and att_exts:
+            msg_lines.append(
+                f"_({len(att_exts)} attachment(s): {', '.join(att_exts)})_"
+            )
+        msg_lines.append("")
+
+    # ONE redaction pass over the assembled MESSAGE block. Deliberate:
+    # redact_headers() needs the '**From:** name <email>' line shape, which
+    # only exists post-assembly. Covers senders and bodies in the same pass:
+    # emails, phones, payment-like runs, URLs, and From/To display-names
+    # (staff/vendor allowlist survives).
+    full_text = "\n".join(frontmatter) + "\n" + deterministic_redact("\n".join(msg_lines))
 
     output_dir.mkdir(parents=True, exist_ok=True)
     out_path = output_dir / f"{thread_id}.md"
-    out_path.write_text("\n".join(out_lines), encoding="utf-8")
+    out_path.write_text(full_text, encoding="utf-8")
 
     return {
         "thread_id": thread_id,
@@ -259,17 +303,41 @@ def export_thread(service, thread_id: str, output_dir: Path) -> dict:
 # Main
 # ---------------------------------------------------------------------------
 
+def parse_args():
+    p = argparse.ArgumentParser(
+        description="Export Gmail catering threads to redacted .md files."
+    )
+    p.add_argument("--after", required=True,
+                   help="Gmail after: date, YYYY/MM/DD (inclusive)")
+    p.add_argument("--before", required=True,
+                   help="Gmail before: date, YYYY/MM/DD (EXCLUSIVE)")
+    p.add_argument("--out", required=True,
+                   help="Output folder for .md files, e.g. threads_batch3")
+    p.add_argument("--max", type=int, default=40,
+                   help="Max threads to pull this run (default 40)")
+    args = p.parse_args()
+    for label, val in (("--after", args.after), ("--before", args.before)):
+        if not GMAIL_DATE_RE.match(val):
+            p.error(f"{label} must be YYYY/MM/DD, got {val!r}")
+    return args
+
+
 def main():
+    args = parse_args()
+    output_dir = Path(args.out)
+
     print(f"Starting export at {datetime.now().isoformat()}")
+    print(f"Window: after {args.after} / before {args.before} (exclusive)  "
+          f"-> {output_dir}  (max {args.max})")
     service = get_gmail_service()
     print("Authenticated. Running Gmail query...")
 
-    query = build_query()
+    query = build_query(args.after, args.before)
     print(f"Query: {query}")
     results = service.users().threads().list(
         userId="me",
         q=query,
-        maxResults=MAX_THREADS,
+        maxResults=args.max,
     ).execute()
 
     threads = results.get("threads", [])
@@ -278,7 +346,7 @@ def main():
     stats = []
     for i, t in enumerate(threads, start=1):
         print(f"[{i}/{len(threads)}] exporting {t['id']}...")
-        stats.append(export_thread(service, t["id"], OUTPUT_DIR))
+        stats.append(export_thread(service, t["id"], output_dir))
 
     exported = [s for s in stats if not s.get("skipped")]
     with_reply = sum(1 for s in exported if s.get("operator_replied"))
@@ -289,7 +357,7 @@ def main():
     print(f"Exported: {len(exported)} threads")
     print(f"  Operator replied: {with_reply}")
     print(f"  No operator reply: {without_reply}")
-    print(f"Output folder: {OUTPUT_DIR.resolve()}")
+    print(f"Output folder: {output_dir.resolve()}")
     print("=" * 50)
 
 
