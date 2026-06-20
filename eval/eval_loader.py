@@ -285,21 +285,23 @@ if __name__ == "__main__":
     db = sys.argv[1] if len(sys.argv) > 1 else r"C:\dev\yannis-ai-build\labeling\labels.db"
     rows = load_eval_rows(db)
     s = summarize(rows)
-    print(f"gradeable rows: {s['n_rows']}  (expected 122)")
+    print(f"gradeable rows: {s['n_rows']}  (expected 160)")
     print("by inquiry_type:", s["by_inquiry_type"])
     print("by qualification:", s["by_qualification"])
     # Hard check: the proof-of-correctness number.
     # Derived 2026-06-09: 142 label rows, 128 distinct inquiries (14 relabels
     # collapsed), drop 6 EXCLUDE_FROM_EVAL rows -> 122 gradeable.
+    # Updated 2026-06-18 (Session F): 37 batch-3 inbounds labeled (2 batch-3
+    # rows quarantined model_failed, un-labelable) -> 160 gradeable.
     # Re-run check_counts.py to re-derive if the dataset grows again.
-    assert s["n_rows"] == 122, f"EXPECTED 122 gradeable rows, got {s['n_rows']}"
-    print("PASS: loader returned the expected 122 gradeable rows")
+    assert s["n_rows"] == 160, f"EXPECTED 160 gradeable rows, got {s['n_rows']}"
+    print("PASS: loader returned the expected 160 gradeable rows")
 
     # Clean-inbound path sanity: count + one sample body (truncated).
     inbounds = load_gradeable_inbounds(db)
-    print(f"\nclean cold inbounds (edge_case_flag=0): {len(inbounds)}  (expected 61)")
-    assert len(inbounds) == 61, f"EXPECTED 61 clean inbounds, got {len(inbounds)}"
+    print(f"\nclean cold inbounds (edge_case_flag=0): {len(inbounds)}  (expected 73)")
+    assert len(inbounds) == 73, f"EXPECTED 73 clean inbounds, got {len(inbounds)}"
     sample = inbounds[0]
     preview = sample.inquiry_text[:200].replace("\n", " ")
     print(f"  sample inquiry_text[:200]: {preview!r}")
-    print("PASS: clean-inbound loader returned 61 rows with bodies")
+    print("PASS: clean-inbound loader returned 73 rows with bodies")
