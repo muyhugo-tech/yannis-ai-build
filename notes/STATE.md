@@ -155,3 +155,104 @@ verify_ingest_redaction.py, relabel_s9.py; audit_pii.py. relabel_s9.py
 documents a ground-truth change and is the strongest candidate to actually
 track. (probe_from_lines.py left this pile — committed in 0547c76 as F6's
 shared-helper consumer; STATE_session_C_entry.md committed with the notes.)
+## Session F correction (2026-06-18) — stored state ≠ committed state
+
+Found and fixed: F6 was COMMITTED Session E (0547c76) but NEVER APPLIED to
+stored rows. redact.py runs only at ingest; thread_text_redacted is frozen
+at ingest time. All batch-3 rows were ingested Session D (pre-F6), so the
+fix never touched them. Gate-6's "DB row all names -> {name}" (PASSED) was
+FALSE — it trusted the eyeball + the commit, never scanned stored bytes.
+
+CUSTOMER PII FOUND: row 18e15f532bcec520, slot "{name-17}, Jonah" — customer
+surname {name-17} survived because staff first-name "jonah" matched the
+pre-F6 substring allowlist. Was sitting verified+unredacted in labels.db.
+
+FIX APPLIED (verified by byte-scan, not by commit):
+- Backed up labels.db -> labels.db.bak-pre-batch3-reingest (fc /b identical).
+- Deleted 40 batch-3 rows (delete_batch3.py, guarded: 40 count + 0 labeled
+  asserted). FK-safe — zero batch-3 rows were labeled.
+- Re-ingested ..\threads_batch3 with current (post-F6) redact.py.
+- check_batch3_redaction.py: [B] (customer-leak bucket) now EMPTY. {name-17} gone.
+- model_failed dropped 3 -> 1 (D2/D3 body fixes let 2 ingest clean; confirms
+  the D2/D3-causes-model_failed hypothesis a 2nd time). 1 still deferred.
+
+STILL OPEN (deferred, not fixed today — all cosmetic/non-PII):
+- 78 labeled rows have STALE source_path (points at chunk_*/threads_test3;
+  files actually live in threads_batch2*/). Re-redactable by ID-match, not
+  yet done. Staff-surname-only survival ([B] clean for all 168). NOT customer PII.
+- The "separation" of those 78 was NEVER persisted — no archive file, no DB
+  table, no loader filter. They are STILL LIVE in labels and STILL flow
+  through eval_loader. eval_loader asserts (122/61) are stale regardless.
+- 1 batch-3 row still model_failed — diagnose/defer next session.
+
+PROCESS FIX (the real lesson): "committed" ≠ "applied." A redaction fix is
+inert until re-run over stored data AND the stored bytes are scanned.
+Verification gates must scan the DB column, not the code or working tree.
+Standing addition: after ANY redactor change or folder move, re-derive
+expected redaction from current source + current redact.py and diff against
+stored thread_text_redacted before trusting any "clean" claim.
+
+Dataset now: 168 inquiries (167 verified, 1 model_failed), 128 labeled,
+39 batch-3 verified-unlabeled. Labeling NOT started this session.
+## Session F (2026-06-18) — labeling + a data-integrity correction
+
+### What actually happened
+Came in to label batch-3. Found, before labeling could start, that F6 was
+COMMITTED Session E (0547c76) but NEVER APPLIED to stored rows. redact.py
+runs only at ingest; thread_text_redacted is frozen at ingest time. All
+batch-3 rows were ingested Session D (pre-F6), so the fix never touched them.
+Gate-6's "DB row all names -> {name}" (PASSED) was FALSE — it trusted the
+eyeball + the commit, never scanned stored bytes.
+
+### Customer PII found and fixed
+- 18e15f532bcec520, slot "{name-17}, Jonah" — customer surname {name-17} survived
+  the pre-F6 substring allowlist (staff first name "jonah" matched). Was
+  sitting verified+unredacted.
+- Backed up labels.db -> labels.db.bak-pre-batch3-reingest (fc /b identical).
+- Deleted 40 batch-3 rows (delete_batch3.py, guarded), re-ingested
+  ..\threads_batch3 with current post-F6 redact.py. From-line leak cleared,
+  verified by byte-scan (check_batch3_redaction.py [B] empty).
+- model_failed dropped 3 -> 2 (D2/D3 body fixes let 2 of 3 ingest clean;
+  confirms the D2/D3-causes-model_failed hypothesis a 2nd time).
+
+### The From-line probe was blind to BODY leaks (the F5 gap, confirmed)
+[B] empty meant From-LINES clean, not bodies clean. probe_body_leaks.py
+(read-only, new) found 2 real customer-name BODY leaks the model redactor
+missed/failed:
+- 18e15f532bcec520 ({name-17}) — signature "{name-8}" + greeting "Hi Jonah".
+- 18da9fc12bae4de0 ({name-3} / {name-4} / {name-5}) — already model_failed.
+Both QUARANTINED (set redaction_status=model_failed, quarantine_{name-17}.py),
+un-labelable, deferred to the redaction-fix session.
+F5 (body-artifact probe) IS NO LONGER DEFERRABLE. The manual eyeball failed —
+read past {name-17} in a signature block. F5 must be built before any further
+ingest, and it must NOT reuse the allowlist.
+
+### Labeling
+37 batch-3 inbounds labeled (38 threads walked; 2 batch-3 rows quarantined).
+ROW-22 applied. Most edge cases were operator-initiated, repeat customers,
+exporter-split continuations, or non-inquiries (health notices, bounces, COI
+forwards). ~14 kept as clean cold inbounds (edge_case_flag=0).
+
+### Dataset now
+- inquiries: 168 (166 verified-or-labeled, 2 model_failed quarantined).
+- labels: 166 labeled.
+- gradeable (load_eval_rows): 122 -> 160.
+- clean cold inbounds (load_gradeable_inbounds, edge_case_flag=0): 59 -> 73.
+- eval_loader.py asserts refreshed to 160 / 73 (count refresh only; logic frozen).
+
+### Still open / deferred (none are customer PII)
+1. F5 body-artifact probe — now REQUIRED before next ingest.
+2. 2 model_failed quarantined rows ({name-17}, 18da9fc1) — re-redact or formally defer.
+3. 78 labeled rows with STALE source_path (point at dead chunk_*/threads_test3;
+   files actually live in threads_batch2*/). Re-redactable by ID-match.
+   Staff-surname-only survival, NOT customer PII. Deferred.
+4. Phone-regex gap: vendor phone "T.+1 (858) 914 - 9055" survived in
+   18e0f9c5 (T. prefix + spaced dash). Vendor, cosmetic. Add to redaction backlog.
+5. Growth (Q2-Q4 2024 export) to push n>=100 — gated behind F5.
+
+### Process rule added (the real lesson)
+"Committed" != "applied." A redaction fix is inert until re-run over stored
+data AND the stored bytes are scanned. Verification must scan the DB column,
+not the code, the working tree, or a From-line-only probe. After ANY redactor
+change or folder move, re-derive expected redaction from current source +
+current redact.py and diff against stored thread_text_redacted.
