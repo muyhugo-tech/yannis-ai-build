@@ -399,3 +399,138 @@ retires "DIAGNOSTIC"; until then the number is a pilot baseline, not a gating ba
 Frozen files untouched. One variable (61->73). Caching on. Hugo ran all commands; Claude proposed files only.
 Pushed back on: open-ended prompt edit (wording lever spent, non-gating baseline), and on gating
 an autonomous claim at n=73. Gate revision limited to pilot scope only.
+## Session I (2026-06-21) — pilot delivery defined + decision axis verified on live runs
+
+### Goal 0 — state verified against the DB (passed)
+label.py status: 168 ingested / 166 labeled / 2 model_failed / 0 verified_unlabeled. MATCH.
+eval_loader.py: PASS 160 gradeable / 73 clean inbounds (asserts fired vs live DB). MATCH.
+probe_body_artifacts (F5): PASS, [B-FAIL]=0; 19 [B-OK] all on the 2 quarantined rows. No stored-byte disagreement.
+GIT FINDING (resolved): the Session-H STATE.md amendment was WRITTEN but never committed — found via
+`git status --short notes/STATE.md` (` M`) after `git log -1 -- notes/STATE.md` returned empty (the empty
+result was a pathspec artifact of running from labeling/, not a missing file). Committed this session as
+47fd59c. So the Session-H pilot decision is now persisted, not working-tree-only. Same governing lesson:
+the record disagreed with git until the bytes were checked.
+
+### Goal 1 — pilot delivery DEFINED (decided live, in writing)
+v0 pilot delivery = **local script, draft emitted as TEXT, operator copies approved drafts by hand.**
+NO Gmail write scope, NO deployed service, NO new credential. The inbox is never touched by a program;
+the copy-paste IS the review act (human-in-the-loop enforced structurally, not aspirationally).
+PATH NOT TAKEN and why: (a) unsent-Gmail-draft delivery was rejected — puts a finished-looking draft one
+click from send, erodes the review step the gate revision rests on, and needs gmail.compose scope on the
+live inbox. (b) "separate deployed toolset" (operator's mid-session swerve, "don't want to plug into my
+machine") was NAMED as scope creep — that is the Week 8-9 MCP/hosted path, gated on autonomous-readiness
+this pilot does not claim. The real worry behind the swerve was "program writes to my live inbox," which
+the text-output design removes entirely. Lightest thing that works won.
+
+### Goal 1.5 — pilot_v0.py BUILT (uncommitted, operator deferred commit decision)
+eval/pilot_v0.py (NEW, on disk, NOT staged this session by operator choice). Single-inquiry harness that
+MIRRORS grade_agent.pairs_for_real_agent exactly: load_gradeable_inbounds -> qualify(client, inquiry_text)
+-> print decision + draft + checks. Reuses the graded call path so the pilot cannot silently diverge from
+what the eval measured. --id (repeatable, pulls clean inbound from DB), --stdin (paste), --list. Prints:
+DECISION, DRAFT, the 3 REAL voice checks (run_voice_checks), an email/phone leak scan (new, narrow regex,
+strips {curly_tokens} first so echoed placeholders never flag), and an EYEBALL note for names+language.
+GATES NOTHING, WITHHOLDS NOTHING this session — it is a reading instrument to answer "is a draft edit-and-
+send quality." Quarantine guard: refuses 18da9fc1 / 18e15f53 if ever passed (belt-and-suspenders; they are
+not in the clean set anyway).
+
+### Goal 2 — safety-rail TRUTH established (the rails attach to what is real, not assumed)
+- DANGER-CELL CHECKER: run_voice_checks IS callable and wired. But it covers 3 of 5 cells. no_em_dash /
+  no_emoji / no_pricing are REAL. **language_match is an explicit always-passing STUB (verifies nothing).
+  No PII check exists in voice_checks.py at all.** Wiring run_voice_checks as "the gate" without naming
+  these two gaps would be the F/G/H trap (green check that tests nothing). For v0: added a narrow email/
+  phone leak scan in pilot_v0 (the one PII class with a clean deterministic test); names + language are
+  printed as "NOT VERIFIED — eyeball" rather than faked. Real-name detection has no clean deterministic
+  test (same wall as language) — deferred, not stubbed-as-passing.
+- CONFIDENCE SIGNAL DOES NOT EXIST: agent_v3 PLACEHOLDER_CONFIDENCE = 0.5, hardcoded on every inquiry
+  (confirmed in source). The "withhold draft on low-confidence" rail is UNBUILDABLE — it would read a
+  constant and fire never. The only real branch signal is `status`. Do not design a confidence gate until
+  the agent emits real confidence (its own baseline-resetting step).
+
+### Goal 2 evidence — TWO pilot runs (18 hand-picked rows, single run each, MODERATE confidence)
+RUN 1 (9 real event inquiries): all 9 DECISION=qualified, all matched labels. Redaction held everywhere
+({email}/{phone}/{address} in agent input, leak scan quiet). Parsing clean incl. carrier-line noise
+("Sent from my Verizon..." read past correctly). No-pricing held under direct "send me the cost proposal"
+push. Voice edit-and-send quality.
+RUN 2 (7 declined + 2 needs_info, the discrimination test): **9/9 correct** — 7 declined, 2 needs_info,
+all matched labels. The feared false-qualified did NOT happen: Tripleseat competitor sales pitch -> declined;
+"Hello Team" internal staff email -> declined; news/newsletter blasts -> declined. Both needs_info typeforms
+("Just exploring options") -> needs_info, not qualified.
+COMBINED: 18/18 decision-axis match across qualified/declined/needs_info. The all-qualified worry from
+Run 1 is answered — the agent discriminates, it was not rubber-stamping (Run 1 rows were genuinely all
+qualified). Clean-inbound decision distribution for context: declined=37, qualified=31, needs_info=5.
+
+### TWO findings RAISED then WITHDRAWN (process note — the human "trust the bytes" lesson, again)
+Claude flagged 18e24656 as (a) fabricated guest count and (b) plated-above-cap 2.4a violation. BOTH WRONG,
+both withdrawn after reading the UNTRUNCATED agent input (the pilot display truncates at 600 chars; the
+deciding text was below the fold). Reality: the inbound states "thinking for 20 people"; the agent read 20,
+called resolve_service_options(20) -> band 15_to_25, plated_available=True; offered plated. CORRECT — 20 is
+under the 25 cap. The "30" was a LATER thread figure, not in message 1. Instrumented _diag_service_tool.py
+(throwaway, monkeypatched _dispatch_tool to print every tool call) PROVED the tool fires and its cap logic
+is right on live rows. Lesson restated: Claude reasoned from the truncated display + the stored label, not
+the actual input — the human form of "trust the probe summary over the bytes." Fix: read full input before
+asserting a violation. The tool architecture (deterministic service-mode authority) is VERIFIED working on
+live data — first time confirmed outside unit tests.
+
+### Findings that SURVIVE (real, unaddressed — fine under human review, NOT fine under reduced review)
+1. **declined drafts are unreliable and must be WITHHELD in any send path.** PROVED, not theoretical: on
+   empty/forwarded junk (19a6325d, 19a70945) the "draft" is the agent talking TO THE OPERATOR ("I don't see
+   the inquiry text, please paste it"), not a customer reply. Decision is the only trustworthy output on
+   declined rows. This is the one rail the runs proved necessary. (Withhold-on-declined NOT yet added to
+   pilot_v0 — operator chose to defer the edit and stage nothing this session.)
+2. **Agent occasionally PADS guest counts.** 19a78f9: form says "Adults 15" -> draft says "15 to 20" (no
+   basis). 18e24656: 20 -> draft "20" (correct). 19a9035: form says 30+10 -> draft "40" (correct sum).
+   Mixed. The plated/buffet line stays safe ONLY because the tool gates it (40-person -> buffet, correct).
+   Operator must verify the number before sending. Draft-quality issue, not a decision error. NOT diagnosed
+   (would touch frozen prompt/tool — out of scope this session).
+3. needs_info spot-checked n=2 (both correct) — NOT cleared as an axis. Thin class (5 total).
+4. Name-eyeball heuristic in pilot_v0 is noisy as designed ('For','Your','Looking') — near-useless as-is;
+   restrict to multi-word Title Case or drop. Cosmetic.
+
+### PILOT VERDICT (the Session I deliverable)
+Agent is CLEARED for human-in-the-loop pilot, on these terms, with evidence:
+- Decisions trustworthy across qualified/declined/needs_info (18/18 to labels).
+- Drafts edit-and-send quality on qualified/needs_info, with two operator-caught caveats: count-padding,
+  and glance the plated/buffet line on larger events.
+- declined drafts WITHHELD, not sent (decision is the trustworthy output there).
+- Redaction, parsing, no-pricing, and the service tool all VERIFIED on live data.
+NOT CLAIMED (kept honest): 18 hand-picked rows, single run each, moderate confidence — NOT a gating
+baseline. n>=100 + variance bands + needs_info/human_review coverage REMAIN in force for autonomous/reduced-
+review mode. The asterisk-retirement condition (Session H) is unchanged: live conversion-lift number, or
+n>=100 holding. No real customer reply has been sent yet.
+
+### LinkedIn post (drafted, NOT posted — operator action)
+Grind-angle post drafted in operator-plain voice: one-change-at-a-time, "checking the checker," the
+mistake-was-mine lesson, decision axis read real inquiries right, explicitly "still a pilot, I review every
+draft." DELIBERATELY: no repo link, no numbers (single hand-picked run; "out of 18 I chose" undercuts a
+flex), no profanity (offered, operator can add one). HARD CONSTRAINT held: a post drives traffic to GitHub,
+and the repo is PRIVATE pending the full git-history PII audit ([D] surface: 59 .md files with real customer
+names in the working tree). Post must not invite the click until the audit passes. Week-4 dopamine gate is
+satisfied (we are past it); the PII/ordering constraint is the live one.
+
+### NOT done this session (named to resist drift)
+- Frozen prompt NOT edited (wording lever spent; baseline non-gating; the count-padding fix would touch it
+  — deferred to a real eval cycle). agent_v3 / grader / eval_loader LOGIC untouched.
+- Public repo NOT flipped (full git-history audit still owed — its own gated session). Pilot != public repo.
+- withhold-on-declined rail NOT yet added to pilot_v0 (operator deferred the edit).
+- NOTHING staged/committed except 47fd59c (the Session-H STATE.md amendment). pilot_v0.py, _peek.py,
+  _diag_service_tool.py all UNCOMMITTED on disk — disposition deferred (standing rule: never `git add .`
+  with the diagnostics pile present; stage by filename when decided).
+- Q2-Q4 export / n>=100 — still the demoted "if needed" path (autonomous mode or asterisk retirement only).
+
+### Commits this session
+- 47fd59c — notes/STATE.md, the Session-H amendment (written prior session, committed this one). One commit.
+
+### Carried forward (unchanged from G/H)
+- 2 quarantined model_failed rows (18e15f53 {name-17}, 18da9fc1 {name-3}/{name-5}) — re-redact or formal defer.
+- 78 stale source_path rows — re-point + re-redact, or accept as cosmetic. Not customer PII.
+- 19e5a9ca edge_case_flag=0 clean-inbound convention call (would drop 73->72).
+- Untracked diagnostics pile incl. name-bearing scripts (quarantine_{name-17}.py, check_pihas.py,
+  reredact_19e5a9ca.py) — disposition owed before any public flip.
+- Public-flip FULL git-history PII audit (every blob) — non-negotiable, its own session.
+
+### Standing rules held this session
+Direct, no praise, led with the strongest counterargument, explicit confidence labels. Hugo ran all
+terminal commands; Claude proposed/edited files only. Split venvs. One variable per eval cycle (no eval
+variable moved — this was pilot stand-up, not an eval cycle). Pushed back on: the "deployed toolset" swerve
+(named as Week 8-9 scope creep), editing the frozen prompt against a non-gating baseline, and flipping the
+public repo before the git-history audit. Held the pilot != public-repo line throughout.
