@@ -993,15 +993,19 @@ COMMIT FOR THIS SESSION'S WORK: <fill after staging>
   check_pihas.py, quarantine_{name-17}.py, audit_pii.py) is NOT swept in.
   git add . remains forbidden. No code/prompt/foundation file changed — nothing
   else to stage.
+  STALE-MESSAGE NOTE (added Session L): commit 99d6373's message says "+3 cold"
+  but K added 4 cold (live-8/9/10/11) + 1 recall (live-7) = 5 rows. The CSV is
+  authoritative; the message undercounts cold by one. History NOT rewritten
+  (not worth a rebase); the count error is corrected in this STATE block instead.
 
 ## Session-K outcome in one line
-Pure measurement: 4 more rows scored (3 cold / 1 recall) bringing COLD to n=9
-(Adv 2, Salv 2, Stall 5 -> 44% saved-time), recall to n=3. The headline is the
-read firming up: saved-time settled in the 40s% and drifted DOWN as n grew
-(opposite of the n=4 75% illusion), and the dominant COLD-Stall cause is now
-clear and NOT the Session-J default — it is tier1-underdisclosure / under-
-routing (agent defers facts the foundation says quote-freely), with date-anchor
-a distant second. NO eval/prompt/foundation edit. Scope held all session.
+Pure measurement: 5 more rows scored (4 cold / 1 recall) bringing COLD to n=8
+(Adv 2, Salv 2, Stall 4 -> 50% saved-time), recall to n=3. The headline is the
+read firming up: saved-time dropped from the n=4 75% illusion and settled at
+50%, and the dominant COLD-Stall cause is now clear and NOT the Session-J
+default — it is tier1-underdisclosure / under-routing (agent defers facts the
+foundation says quote-freely), with tool-routing second and date-anchor tied
+for last (1 cold instance). NO eval/prompt/foundation edit. Scope held all session.
 
 ## Goal 0 — verified against DB + git (not STATE claims). ALL FOUR MATCH.
 - label.py status (LABEL_DB set, run from REPO ROOT) -> 168/166/2/0. MATCH.
@@ -1091,11 +1095,11 @@ yardstick governed: "editing didn't beat scratch, I went to scratch" = STALLS.
           Tags: tier1-underdisclosure; merge-field-leak; missing-tool-routing.
 
 Roll-up at close:
-  COLD   n=9 (J's 4 + K's live-8/9/10/11): Adv 2, Salv 2, Stall 5 -> 44% saved.
+  COLD   n=8 (J's 4 + K's live-8/9/10/11): Adv 2, Salv 2, Stall 4 -> 50% saved.
   RECALL n=3 (J's 2 + K's live-7):         Salv 1, Stall 2       -> 33% saved.
-DO NOT cite 44% as a hard number — it is a pilot read, swings on rows, but it is
-NOW past the 5-10 "usable read" threshold and the trend (down from 75% @ n=4) is
-the honest signal: the agent stalls ~half the time on THROUGHPUT.
+DO NOT cite 50% as a hard number — it is a pilot read, swings on rows, but it is
+NOW past the 5-10 "usable read" threshold and the trend (down from 75% @ n=4,
+settled at 50%) is the honest signal: the agent stalls ~half the time on THROUGHPUT.
 
 ## Failure taxonomy — UPDATED. Now FIVE branches (J had 3).
 Reliable FLOOR (every danger cell clean across the session):
@@ -1108,14 +1112,16 @@ Reliable FLOOR (every danger cell clean across the session):
   - PII email/phone scan: 0 leaks.
 Leaky CEILING (throughput), by frequency in the COLD tally:
   1. tier1-underdisclosure / under-routing / missing-product-knowledge — DOMINANT
-     (live-2, live-7, live-8, live-9, live-11). Agent defers/withholds facts the
+     (cold: live-2, live-8, live-9, live-11 = 4; live-7 is recall, not counted
+     here). Agent defers/withholds facts the
      foundation says state-now or quote-freely. SHARPEST framing (live-11):
      agent lacks the WHEN-to-volunteer rule (2.8 tiers), not the facts. Likely
      prompt/spec-shaped, possibly cheap.
   2. missing-tool-routing — menu-link handoff + estimator routing (live-1,
      live-10, live-11). Operator hands a link; agent defers to "a proposal."
-  3. missing-date-anchor — 2 instances (live-5 recall false-confirm; live-9 cold
-     omission). No "today" anchor. Cheap deterministic fix.
+  3. missing-date-anchor — 1 cold instance (live-9 omission); also 1 recall
+     (live-5 false-confirm, hindsight-biased, not in the cold count). No "today"
+     anchor. Cheap deterministic fix. Tied for last by cold frequency.
   4. tone-register-mismatch — NEW (live-10). One voice, no modulation by lead
      type though 2.13 says operators modulate. 1 instance; watch for recurrence.
   5. merge-field-leak — NEW (live-11). Empty-contact greeting leaked the form
@@ -1153,7 +1159,8 @@ operator overturned. The withhold rail and the human gate held every row.
 
 ## Agent fixes — priority RE-ORDERED by the cold tally (was J's order)
 J banked date-anchor FIRST (cheap). The COLD tally (the trustworthy one) now
-argues otherwise — date-anchor is the 3rd-most-frequent cold issue. Proposed
+argues otherwise — date-anchor is tied for LEAST-frequent cold issue (1 cold
+instance, live-9). Cheapness, not frequency, is its case for going early. Proposed
 order for the read-and-decide session (OPERATOR PICKS; this is a recommendation,
 not a mandate, n is still a pilot):
   1. tier1-underdisclosure / quote-gate-disclosure rule — DOMINANT cold-Stall
@@ -1162,14 +1169,15 @@ not a mandate, n is still a pilot):
   2. tool-routing: menu-link handoff (replaces PDF attach) + estimator routing
      with the onsite-only guard intact.
   3. date-anchor injection — cheap, deterministic, prevents a STALLS; still
-     worth doing, just not first.
+     worth doing on cost grounds, just not first and not on frequency grounds
+     (only 1 cold instance).
   4. merge-field-leak — generic-greeting fallback on empty contact. Cheap defect
      fix, can ride with another cycle.
   Each is ONE variable vs n=73. Do NOT bundle. The PDF tool and history/calendar
   remain the expensive far end.
 
 ## Deferred — carried forward (G/H/I/J/K)
-- Deliverable B (cold accrual): now n=9, a usable read. A future session reads
+- Deliverable B (cold accrual): now n=8, a usable read. A future session reads
   the FULL tally and decides what it means / picks the first eval cycle.
 - REPO-ANCHOR script path defaults (label.py LABEL_DB, probe --db, agent_v3
   prompt-load) — its own one-fix commit. Until then the Goal-0 cwd workarounds.
@@ -1185,7 +1193,7 @@ not a mandate, n is still a pilot):
   delivery mechanism v0 is not.
 - PUBLIC REPO flip — gated on FULL git-history PII audit (every blob). Its own
   session. LinkedIn post HELD: a cold ADVANCES+SALVAGEABLE rate is the number
-  behind it; 44% @ n=9 is a number but the repo audit gates posting regardless.
+  behind it; 50% @ n=8 is a number but the repo audit gates posting regardless.
 - Q2-Q4 export / n>=100 — demoted "if needed" (autonomous mode only).
 
 ## Standing rules (unchanged)
@@ -1200,7 +1208,7 @@ agent/prompt improvement before the read-and-decide, or a public flip before the
 git-history audit, NAME it and hold the line.
 
 ## Next session candidates (operator picks ONE — they do NOT braid)
-1. READ-AND-DECIDE: take the full n=9 cold tally + 5-branch taxonomy and pick
+1. READ-AND-DECIDE: take the full n=8 cold tally + 5-branch taxonomy and pick
    the first eval cycle. The tally argues tier1-disclosure first, not date-anchor.
 2. FIRST EVAL CYCLE (only after 1, or if operator picks the target directly):
    one variable, fresh baseline vs 0.959 / n=73. Likeliest target: quote-gate /
