@@ -534,3 +534,678 @@ terminal commands; Claude proposed/edited files only. Split venvs. One variable 
 variable moved — this was pilot stand-up, not an eval cycle). Pushed back on: the "deployed toolset" swerve
 (named as Week 8-9 scope creep), editing the frozen prompt against a non-gating baseline, and flipping the
 public repo before the git-history audit. Held the pilot != public-repo line throughout.
+Session J — close (usefulness-measurement session)
+
+COMMIT FOR THIS SESSION'S WORK: 6e39c13
+message: "pilot: usefulness tally + log_outcome helper (Session J, 6 rows scored)"
+staged BY FILENAME (notes/usefulness_tally.csv + log_outcome.py only); verified
+via git status --short that the ~30-file untracked diagnostics pile (incl.
+name-bearing scripts) was NOT swept in. git add . remains forbidden.
+
+Session-J outcome in one line
+
+Deliverable A complete: capture format + tested append-only helper built, and
+6 real inbounds scored (4 cold / 2 recall). Cold saved-time = 3/4 (75%) AT n=4
+— a PILOT SIGNAL, NOT a gating baseline. The headline finding is live-6: the
+first row that empirically proves the v0 human-review gate is load-bearing.
+
+Goal 0 — verified against DB + git (not STATE claims)
+
+
+label.py status (LABEL_DB set) -> 168/166/2/0. MATCH.
+eval_loader.py -> PASS, 160 gradeable / 73 clean inbounds. MATCH.
+probe_body_artifacts.py (--db set) -> PASS, [B-FAIL]=0, 19 [B-OK] on the 2
+quarantined rows. MATCH.
+git log -> 47fd59c present. Session-I STATE block (90d8073) AND pilot_v0
+withhold-rail (d0cb3a2) ALREADY committed — supersedes the stale I-block line
+that said the rail was "not yet added." Working tree clean on both files.
+
+
+Goal-0 finding: FOUR relative-path footguns (invocation, mostly not code)
+
+All break when run from repo root; all fine from their home dir / with the flag:
+
+
+label.py uses LABEL_DB env (default "labels.db", relative) -> set
+$env:LABEL_DB to the absolute path, or run from labeling.
+probe_body_artifacts.py uses --db (default "labels.db", relative) -> pass
+--db with the absolute path.
+agent_v3.py opens "prompt_v2.txt" relative -> run pilot from inside eval.
+git add from inside eval\ resolves paths against eval, not repo root -> run
+git from repo root (or use ..\ prefixes).
+A 0-byte PHANTOM labels.db was created at repo root by the first mis-run
+(SQLite creates the file on connect) and was DELETED this session (gitignored,
+confirmed empty, real DB in labeling\ intact). The durable fix (repo-anchor the
+script defaults) is a CODE change, its own one-fix commit, DEFERRED — not done
+in a measurement session.
+
+
+Deliverable A — DONE
+
+
+notes/usefulness_tally.csv — append-only log. Columns:
+timestamp,source,inquiry_id,score,failure_tag,why
+log_outcome.py (repo root) — frictionless one-line logger. Tested 6 ways:
+auto-numbering, explicit id, 3 input-validation refusals (bad source / bad
+score / missing why all reject and exit nonzero, nothing stored), the --show
+roll-up (cold/recall tallied SEPARATELY), and append-only integrity (header +
+prior rows byte-identical after writes). Repo-anchored DEFAULT_FILE so it
+writes the SAME tally regardless of cwd. stdlib only, no PII, clean to commit.
+
+
+The 6 scored rows (the in-session read)
+
+Scale: ADVANCES (ship as-is, saved the round-trip) / SALVAGEABLE (right
+instinct, you'd edit to advance) / STALLS (costs a round-trip or misleads).
+Sources tagged separately; cold is trustworthy, recall is hindsight-biased.
+
+
+live-1  cold    Salvageable  fresh Typeform, 50-guest birthday dinner. Correct
+decision/service-mode/voice, no re-asking known details. Operator
+would edit: add menu link, answer the bar ask NOW (structure +
+estimator) instead of deferring to after-location, drop the location
+gate. Tag: missing-tool-routing.
+live-2  cold    Stalls       budino-only retirement request. Draft deferred
+("check with kitchen, follow up") on an item the operator answers on
+the spot (price + 2 gating Qs). Holding reply costs a round-trip.
+Tag: missing-product-knowledge.
+live-3  recall  Salvageable  repeat customer, "same setup" as a past event.
+Draft parroted "same setup" as if it can reproduce it; agent cannot
+see the prior thread. Operator edits to "details from last event for
+your confirmation" (retrieve + verify, don't assert sameness).
+Tag: missing-history-lookup.
+live-4  cold    Advances     8-top anniversary dinner. Agent correctly read
+sub-15 = regular dining, full menu, NO event machinery, ignored the
+budget-field noise. Operator sent near-verbatim, added ONE line (6+ =
+1 check + 20% auto-grat). Lightest edit, round-trip saved.
+Tag: missing-rule-disclosure (SUPERSEDED — see Foundation
+corrections below; gratuity is operator-judgment-at-review, NOT an
+agent miss). Tally row left as-is per append-only discipline.
+live-5  recall  Stalls       9-top Sunday res, "3/28" (3 months PAST today).
+Draft confirmed the stale date as future; agent has no "today" anchor.
+Operator corrected to "this upcoming Sunday," made the res herself
+(draft had offloaded to self-serve). Operator did NOT state gratuity
+here though she DID on live-4 -> spec contradiction, not agent bug.
+Tag: missing-date-anchor (primary, confirmed); spec-gratuity-ambiguity.
+live-6  cold    Advances     23-top NEXT-DAY dinner. ADVANCES under human
+review: "we can absolutely accommodate tomorrow" is correct TEAM
+VOICE, not an overclaim — the agent has no calendar tool, so the
+feasibility check IS the human, by v0 design. Agent also independently
+led with the higher-tier 3-course prix-fixe as an UPSELL ANCHOR over
+the lower buffet floor — a deliberate operator sales play the agent
+matched by instinct, NOT documented anywhere in the foundation.
+CONDITIONAL: the same draft would be UNSAFE autonomous (unchecked
+guarantee) until the agent has calendar-tool access. decision=qualified
+accepted GIVEN the human-review gate.
+Tags: advances-conditional-on-human-review; positive-upsell-match;
+future-needs-calendar-tool.
+
+
+Roll-up at close:  cold n=4: Adv 2, Salv 1, Stall 1 -> 75% saved-time.
+recall n=2: Salv 1, Stall 1 -> 50% saved-time.
+DO NOT cite 75% as "the number." n=4 cold is a pilot signal; it swings on one
+row. The trustworthy read accrues over the remaining ~14 cold rows (Deliverable
+B), which a FUTURE session reads.
+
+Failure taxonomy (the real deliverable — turns "improve the agent" into a
+
+priced, ordered work list). Three branches, DIFFERENT fix mechanisms:
+
+ACCESS GAPS (agent lacks a thing it needs — needs NEW capability):
+
+
+missing-date-anchor      live-5   inject a trustworthy "today" deterministically.
+CHEAPEST real fix; prevents a STALLS-class
+error (confirming impossible dates). Strong
+candidate for FIRST eval cycle.
+missing-product-knowledge live-2  load menu/pricing facts so the agent answers
+instead of deferring.
+missing-tool-routing     live-1   wire the estimator (onsite only) + a menu
+link (replaces the PDF attach). NOTE: agent
+must NOT offer the estimator for OFFSITE,
+where no tool exists — that would be the
+plated-cap-style "assert a path that doesn't
+apply" error. Built-in danger cell.
+missing-history (calendar/email)  live-3 (history), live-6 (calendar). The
+EXPENSIVE branch. Foundation 2.14 already
+scopes email-history lookup OUT of the current
+build. Calendar access gates AUTONOMOUS mode,
+not v0.
+
+
+DECISION MISS (the severe branch — wrong route, the safety rail doesn't fire):
+
+
+Provisionally surfaced at live-6 but RESOLVED to "not a miss": decision=
+qualified was ACCEPTED because the operator ships it under review and the
+agent's confident-yes is correct team voice given no calendar tool. The
+latent risk is real for an autonomous future — same draft, no human, would
+be an unchecked guarantee. This is the empirical case FOR the human-in-the-
+loop design and FOR keeping the n>=100 autonomous gate in force.
+
+
+SPEC / FOUNDATION CORRECTIONS (fix the DOC, not the agent):
+
+
+Gratuity rule (Foundation 2.3) overstates "state proactively." Operator
+applied it on live-4, SKIPPED it on live-5 — same 6+ in-house shape. DECISION
+(Hugo, this session): gratuity disclosure stays OUT of the agent; the operator
+adds it at human review when warranted. Foundation 2.3 should be rewritten
+from "agent states proactively" to "operator-judgment at review" (and, if the
+condition can be articulated, what distinguishes a live-4 disclose from a
+live-5 skip). NOT an agent fix.
+$55 prix-fixe UPSELL ANCHOR for large groups is a CONFIRMED operator sales
+play (live-6) that is NOT in the foundation. ADD it to Section 2 as a
+documented strategy (lead large-group quotes with the higher 3-course tier to
+anchor per-person spend above the buffet floor). Positive finding — something
+the agent did RIGHT that the spec doesn't capture.
+
+
+SCOPE LINES — held all session, NOT crossed
+
+
+Agent/prompt/foundation edits: ZERO this session. Every finding banked in the
+tally or flagged here. The date-anchor fix is tempting and cheap but is gated
+on the fuller tally + is a real eval cycle (one variable, fresh baseline vs
+the 0.959 n=73). NOT a hot-patch.
+"Refine the agent as we measure" was raised and NAMED as scope (a); held.
+Refining mid-tally would make every row measure a different agent. Holding the
+line is what let the second (spec) and the positive (upsell) findings surface.
+Gmail-read / "pull from the inbox" was raised and NAMED as the Session-I
+path-not-taken + Week 8-9 scope; held. v0 stays local/paste/redact. Live-inbox
+integration is a future session, gated on the usefulness number + a redaction
+step in the read path that does not yet exist.
+Public-repo flip / LinkedIn: untouched. Gated on the FULL git-history PII
+audit (its own session). A cold ADVANCES+SALVAGEABLE rate would BE the number
+that unlocks the post — but the audit comes first.
+
+
+Deferred — carried forward (G/H/I/J)
+
+
+AGENT FIXES, priority-ordered by value/cost: (1) date-anchor [cheap, prevents
+a STALLS], (2) product-facts + tool-routing [medium], (3) history/calendar
+[expensive; history is 2.14-out-of-scope; calendar gates autonomous]. Each is
+a one-variable eval cycle vs the n=73 baseline. GATED on a fuller tally.
+FOUNDATION edits: gratuity 2.3 (proactive -> operator-judgment), and ADD the
+$55 large-group upsell-anchor to Section 2. A foundation-touching session.
+Deliverable B: ~14 more cold rows accrue async via log_outcome.py on shift.
+Future session reads the full tally + decides what it means. Do NOT
+manufacture synthetic inbounds.
+needs_info axis still spot-checked n=2 only; live rows added more needs_info
+evidence but it is not a clean baseline. Widen only if a real reason appears.
+LANGUAGE + real-name PII voice-gate cells: still 3-of-5; gated on a non-paste
+delivery mechanism, which v0 is not.
+DIAGNOSTICS PILE IS BIGGER THAN PREVIOUSLY RECORDED: git status --short
+this session showed ~30 untracked scripts across repo root and labeling,
+NOT the ~5 STATE previously listed. Includes name/PII-bearing or PII-probing
+scripts (check_pihas.py, quarantine_{name-17}.py, reredact_19e5a9ca.py,
+audit_pii.py, probe_body_leaks.py, verify_ingest_redaction.py) and throwaways
+(_peek.py, _diag_service_tool.py — safe to delete, did their job). Plus litter:
+a stray file literally named --help in eval\ (malformed-command residue),
+and notes/SESSION_J_entry.md sitting untracked. FULL disposition owed BEFORE
+any public flip. NEVER git add . while this pile exists.
+2 quarantined model_failed rows (18e15f53 {name-17}, 18da9fc1 {name-3}/{name-5}),
+78 stale source_path rows, 19e5a9ca edge_case_flag convention — all unchanged.
+PUBLIC REPO flip — gated on FULL git-history PII audit (every blob). Its own
+session. Pilot != public repo.
+Q2-Q4 export / n>=100 — demoted "if needed" (autonomous mode / asterisk
+retirement only).
+
+
+Standing rules (unchanged)
+
+Direct, no praise, lead with the strongest counterargument, explicit confidence
+labels. Hugo runs ALL terminal commands; Claude edits/proposes files only. Split
+venvs: .venv=Google(export), venv=Anthropic(ingest/pytest/label/eval/pilot).
+One fix per commit, staged BY FILENAME, never git add . Prompt caching on from
+first commit. READ THE FULL AGENT INPUT before asserting any finding about a
+draft (pilot_v0 display limit is 2000). This session was MEASUREMENT, not an
+eval cycle — no eval variable moved. Push back on scope creep; if a session
+drifts toward agent/prompt improvement before the fuller tally, or a public-repo
+flip before the git-history audit, NAME it and hold the line.
+
+Next session candidates (operator picks)
+
+
+Keep accruing Deliverable B to ~20 cold rows, then a read-and-decide session.
+FIRST eval cycle: date-anchor injection (one variable, fresh baseline vs
+n=73) — only if the tally signal is judged strong enough to justify touching
+the frozen agent.
+Foundation session: rewrite 2.3 gratuity, add the $55 upsell-anchor to §2.
+Git-history PII audit (gates public flip) + diagnostics-pile disposition.
+These are SEPARATE sessions. Do not braid them.
+# Session J — close (usefulness-measurement session)
+
+COMMIT FOR THIS SESSION'S WORK: 6e39c13
+  message: "pilot: usefulness tally + log_outcome helper (Session J, 6 rows scored)"
+  staged BY FILENAME (notes/usefulness_tally.csv + log_outcome.py only); verified
+  via `git status --short` that the ~30-file untracked diagnostics pile (incl.
+  name-bearing scripts) was NOT swept in. git add . remains forbidden.
+
+## Session-J outcome in one line
+Deliverable A complete: capture format + tested append-only helper built, and
+6 real inbounds scored (4 cold / 2 recall). Cold saved-time = 3/4 (75%) AT n=4
+— a PILOT SIGNAL, NOT a gating baseline. The headline finding is live-6: the
+first row that empirically proves the v0 human-review gate is load-bearing.
+
+## Goal 0 — verified against DB + git (not STATE claims)
+- label.py status (LABEL_DB set) -> 168/166/2/0. MATCH.
+- eval_loader.py -> PASS, 160 gradeable / 73 clean inbounds. MATCH.
+- probe_body_artifacts.py (--db set) -> PASS, [B-FAIL]=0, 19 [B-OK] on the 2
+  quarantined rows. MATCH.
+- git log -> 47fd59c present. Session-I STATE block (90d8073) AND pilot_v0
+  withhold-rail (d0cb3a2) ALREADY committed — supersedes the stale I-block line
+  that said the rail was "not yet added." Working tree clean on both files.
+
+### Goal-0 finding: FOUR relative-path footguns (invocation, mostly not code)
+All break when run from repo root; all fine from their home dir / with the flag:
+- label.py uses LABEL_DB env (default "labels.db", relative) -> set
+  $env:LABEL_DB to the absolute path, or run from labeling\.
+- probe_body_artifacts.py uses --db (default "labels.db", relative) -> pass
+  --db with the absolute path.
+- agent_v3.py opens "prompt_v2.txt" relative -> run pilot from inside eval\.
+- git add from inside eval\ resolves paths against eval\, not repo root -> run
+  git from repo root (or use ..\ prefixes).
+A 0-byte PHANTOM labels.db was created at repo root by the first mis-run
+(SQLite creates the file on connect) and was DELETED this session (gitignored,
+confirmed empty, real DB in labeling\ intact). The durable fix (repo-anchor the
+script defaults) is a CODE change, its own one-fix commit, DEFERRED — not done
+in a measurement session.
+
+## Deliverable A — DONE
+- notes/usefulness_tally.csv — append-only log. Columns:
+  timestamp,source,inquiry_id,score,failure_tag,why
+- log_outcome.py (repo root) — frictionless one-line logger. Tested 6 ways:
+  auto-numbering, explicit id, 3 input-validation refusals (bad source / bad
+  score / missing why all reject and exit nonzero, nothing stored), the --show
+  roll-up (cold/recall tallied SEPARATELY), and append-only integrity (header +
+  prior rows byte-identical after writes). Repo-anchored DEFAULT_FILE so it
+  writes the SAME tally regardless of cwd. stdlib only, no PII, clean to commit.
+
+## The 6 scored rows (the in-session read)
+Scale: ADVANCES (ship as-is, saved the round-trip) / SALVAGEABLE (right
+instinct, you'd edit to advance) / STALLS (costs a round-trip or misleads).
+Sources tagged separately; cold is trustworthy, recall is hindsight-biased.
+
+- live-1  cold    Salvageable  fresh Typeform, 50-guest birthday dinner. Correct
+          decision/service-mode/voice, no re-asking known details. Operator
+          would edit: add menu link, answer the bar ask NOW (structure +
+          estimator) instead of deferring to after-location, drop the location
+          gate. Tag: missing-tool-routing.
+- live-2  cold    Stalls       budino-only retirement request. Draft deferred
+          ("check with kitchen, follow up") on an item the operator answers on
+          the spot (price + 2 gating Qs). Holding reply costs a round-trip.
+          Tag: missing-product-knowledge.
+- live-3  recall  Salvageable  repeat customer, "same setup" as a past event.
+          Draft parroted "same setup" as if it can reproduce it; agent cannot
+          see the prior thread. Operator edits to "details from last event for
+          your confirmation" (retrieve + verify, don't assert sameness).
+          Tag: missing-history-lookup.
+- live-4  cold    Advances     8-top anniversary dinner. Agent correctly read
+          sub-15 = regular dining, full menu, NO event machinery, ignored the
+          budget-field noise. Operator sent near-verbatim, added ONE line (6+ =
+          1 check + 20% auto-grat). Lightest edit, round-trip saved.
+          Tag: missing-rule-disclosure (SUPERSEDED — see Foundation
+          corrections below; gratuity is operator-judgment-at-review, NOT an
+          agent miss). Tally row left as-is per append-only discipline.
+- live-5  recall  Stalls       9-top Sunday res, "3/28" (3 months PAST today).
+          Draft confirmed the stale date as future; agent has no "today" anchor.
+          Operator corrected to "this upcoming Sunday," made the res herself
+          (draft had offloaded to self-serve). Operator did NOT state gratuity
+          here though she DID on live-4 -> spec contradiction, not agent bug.
+          Tag: missing-date-anchor (primary, confirmed); spec-gratuity-ambiguity.
+- live-6  cold    Advances     23-top NEXT-DAY dinner. ADVANCES *under human
+          review*: "we can absolutely accommodate tomorrow" is correct TEAM
+          VOICE, not an overclaim — the agent has no calendar tool, so the
+          feasibility check IS the human, by v0 design. Agent also independently
+          led with the higher-tier 3-course prix-fixe as an UPSELL ANCHOR over
+          the lower buffet floor — a deliberate operator sales play the agent
+          matched by instinct, NOT documented anywhere in the foundation.
+          CONDITIONAL: the same draft would be UNSAFE autonomous (unchecked
+          guarantee) until the agent has calendar-tool access. decision=qualified
+          accepted GIVEN the human-review gate.
+          Tags: advances-conditional-on-human-review; positive-upsell-match;
+          future-needs-calendar-tool.
+
+Roll-up at close:  cold n=4: Adv 2, Salv 1, Stall 1 -> 75% saved-time.
+                   recall n=2: Salv 1, Stall 1 -> 50% saved-time.
+DO NOT cite 75% as "the number." n=4 cold is a pilot signal; it swings on one
+row. The trustworthy read accrues over the remaining ~14 cold rows (Deliverable
+B), which a FUTURE session reads.
+
+## Failure taxonomy (the real deliverable — turns "improve the agent" into a
+## priced, ordered work list). Three branches, DIFFERENT fix mechanisms:
+
+ACCESS GAPS (agent lacks a thing it needs — needs NEW capability):
+- missing-date-anchor      live-5   inject a trustworthy "today" deterministically.
+                                    CHEAPEST real fix; prevents a STALLS-class
+                                    error (confirming impossible dates). Strong
+                                    candidate for FIRST eval cycle.
+- missing-product-knowledge live-2  load menu/pricing facts so the agent answers
+                                    instead of deferring.
+- missing-tool-routing     live-1   wire the estimator (onsite only) + a menu
+                                    link (replaces the PDF attach). NOTE: agent
+                                    must NOT offer the estimator for OFFSITE,
+                                    where no tool exists — that would be the
+                                    plated-cap-style "assert a path that doesn't
+                                    apply" error. Built-in danger cell.
+- missing-history (calendar/email)  live-3 (history), live-6 (calendar). The
+                                    EXPENSIVE branch. Foundation 2.14 already
+                                    scopes email-history lookup OUT of the current
+                                    build. Calendar access gates AUTONOMOUS mode,
+                                    not v0.
+
+DECISION MISS (the severe branch — wrong route, the safety rail doesn't fire):
+- Provisionally surfaced at live-6 but RESOLVED to "not a miss": decision=
+  qualified was ACCEPTED because the operator ships it under review and the
+  agent's confident-yes is correct team voice given no calendar tool. The
+  *latent* risk is real for an autonomous future — same draft, no human, would
+  be an unchecked guarantee. This is the empirical case FOR the human-in-the-
+  loop design and FOR keeping the n>=100 autonomous gate in force.
+
+SPEC / FOUNDATION CORRECTIONS (fix the DOC, not the agent):
+- Gratuity rule (Foundation 2.3) overstates "state proactively." Operator
+  applied it on live-4, SKIPPED it on live-5 — same 6+ in-house shape. DECISION
+  (Hugo, this session): gratuity disclosure stays OUT of the agent; the operator
+  adds it at human review when warranted. Foundation 2.3 should be rewritten
+  from "agent states proactively" to "operator-judgment at review" (and, if the
+  condition can be articulated, what distinguishes a live-4 disclose from a
+  live-5 skip). NOT an agent fix.
+- $55 prix-fixe UPSELL ANCHOR for large groups is a CONFIRMED operator sales
+  play (live-6) that is NOT in the foundation. ADD it to Section 2 as a
+  documented strategy (lead large-group quotes with the higher 3-course tier to
+  anchor per-person spend above the buffet floor). Positive finding — something
+  the agent did RIGHT that the spec doesn't capture.
+
+## SCOPE LINES — held all session, NOT crossed
+- Agent/prompt/foundation edits: ZERO this session. Every finding banked in the
+  tally or flagged here. The date-anchor fix is tempting and cheap but is gated
+  on the fuller tally + is a real eval cycle (one variable, fresh baseline vs
+  the 0.959 n=73). NOT a hot-patch.
+- "Refine the agent as we measure" was raised and NAMED as scope (a); held.
+  Refining mid-tally would make every row measure a different agent. Holding the
+  line is what let the second (spec) and the positive (upsell) findings surface.
+- Gmail-read / "pull from the inbox" was raised and NAMED as the Session-I
+  path-not-taken + Week 8-9 scope; held. v0 stays local/paste/redact. Live-inbox
+  integration is a future session, gated on the usefulness number + a redaction
+  step in the read path that does not yet exist.
+- Public-repo flip / LinkedIn: untouched. Gated on the FULL git-history PII
+  audit (its own session). A cold ADVANCES+SALVAGEABLE rate would BE the number
+  that unlocks the post — but the audit comes first.
+
+## Deferred — carried forward (G/H/I/J)
+- AGENT FIXES, priority-ordered by value/cost: (1) date-anchor [cheap, prevents
+  a STALLS], (2) product-facts + tool-routing [medium], (3) history/calendar
+  [expensive; history is 2.14-out-of-scope; calendar gates autonomous]. Each is
+  a one-variable eval cycle vs the n=73 baseline. GATED on a fuller tally.
+- FOUNDATION edits: gratuity 2.3 (proactive -> operator-judgment), and ADD the
+  $55 large-group upsell-anchor to Section 2. A foundation-touching session.
+- Deliverable B: ~14 more cold rows accrue async via log_outcome.py on shift.
+  Future session reads the full tally + decides what it means. Do NOT
+  manufacture synthetic inbounds.
+- needs_info axis still spot-checked n=2 only; live rows added more needs_info
+  evidence but it is not a clean baseline. Widen only if a real reason appears.
+- LANGUAGE + real-name PII voice-gate cells: still 3-of-5; gated on a non-paste
+  delivery mechanism, which v0 is not.
+- DIAGNOSTICS PILE IS BIGGER THAN PREVIOUSLY RECORDED: `git status --short`
+  this session showed ~30 untracked scripts across repo root and labeling\,
+  NOT the ~5 STATE previously listed. Includes name/PII-bearing or PII-probing
+  scripts (check_pihas.py, quarantine_{name-17}.py, reredact_19e5a9ca.py,
+  audit_pii.py, probe_body_leaks.py, verify_ingest_redaction.py) and throwaways
+  (_peek.py, _diag_service_tool.py — safe to delete, did their job). Plus litter:
+  a stray file literally named `--help` in eval\ (malformed-command residue),
+  and notes/SESSION_J_entry.md sitting untracked. FULL disposition owed BEFORE
+  any public flip. NEVER git add . while this pile exists.
+- 2 quarantined model_failed rows (18e15f53 {name-17}, 18da9fc1 {name-3}/{name-5}),
+  78 stale source_path rows, 19e5a9ca edge_case_flag convention — all unchanged.
+- PUBLIC REPO flip — gated on FULL git-history PII audit (every blob). Its own
+  session. Pilot != public repo.
+- Q2-Q4 export / n>=100 — demoted "if needed" (autonomous mode / asterisk
+  retirement only).
+
+## Standing rules (unchanged)
+Direct, no praise, lead with the strongest counterargument, explicit confidence
+labels. Hugo runs ALL terminal commands; Claude edits/proposes files only. Split
+venvs: .venv=Google(export), venv=Anthropic(ingest/pytest/label/eval/pilot).
+One fix per commit, staged BY FILENAME, never git add . Prompt caching on from
+first commit. READ THE FULL AGENT INPUT before asserting any finding about a
+draft (pilot_v0 display limit is 2000). This session was MEASUREMENT, not an
+eval cycle — no eval variable moved. Push back on scope creep; if a session
+drifts toward agent/prompt improvement before the fuller tally, or a public-repo
+flip before the git-history audit, NAME it and hold the line.
+
+## Next session candidates (operator picks)
+1. Keep accruing Deliverable B to ~20 cold rows, then a read-and-decide session.
+2. FIRST eval cycle: date-anchor injection (one variable, fresh baseline vs
+   n=73) — only if the tally signal is judged strong enough to justify touching
+   the frozen agent.
+3. Foundation session: rewrite 2.3 gratuity, add the $55 upsell-anchor to §2.
+4. Git-history PII audit (gates public flip) + diagnostics-pile disposition.
+These are SEPARATE sessions. Do not braid them.
+# Session K — close (usefulness-measurement session, continued)
+
+COMMIT FOR THIS SESSION'S WORK: <fill after staging>
+  message: "pilot: usefulness tally +3 cold +1 recall (Session K, live-7..live-11)"
+  STAGE BY FILENAME: notes/usefulness_tally.csv ONLY this session (the 4 new
+  rows are the only artifact). Run `git status --short` BEFORE committing and
+  confirm the ~30-file untracked diagnostics pile (name-bearing scripts incl.
+  check_pihas.py, quarantine_{name-17}.py, audit_pii.py) is NOT swept in.
+  git add . remains forbidden. No code/prompt/foundation file changed — nothing
+  else to stage.
+
+## Session-K outcome in one line
+Pure measurement: 4 more rows scored (3 cold / 1 recall) bringing COLD to n=9
+(Adv 2, Salv 2, Stall 5 -> 44% saved-time), recall to n=3. The headline is the
+read firming up: saved-time settled in the 40s% and drifted DOWN as n grew
+(opposite of the n=4 75% illusion), and the dominant COLD-Stall cause is now
+clear and NOT the Session-J default — it is tier1-underdisclosure / under-
+routing (agent defers facts the foundation says quote-freely), with date-anchor
+a distant second. NO eval/prompt/foundation edit. Scope held all session.
+
+## Goal 0 — verified against DB + git (not STATE claims). ALL FOUR MATCH.
+- label.py status (LABEL_DB set, run from REPO ROOT) -> 168/166/2/0. MATCH.
+- eval_loader.py -> PASS, 160 gradeable / 73 clean inbounds. MATCH.
+- probe_body_artifacts.py (--db abs path) -> PASS, [B-FAIL]=0, 19 [B-OK] on the
+  2 quarantined rows ({name-3}/{name-5} 18da9fc1, {name-8} 18e15f53). MATCH.
+- git log -> 6e39c13 (Session-J tally+helper) AND d0cb3a2 (pilot withhold-rail)
+  in history. MATCH. log_outcome --show -> the 6 Session-J rows present. MATCH.
+- State is trustworthy this session; the bytes confirmed the summary.
+
+### Goal-0 invocation note (the relative-path footgun bit again)
+The three label/eval/probe checks were FIRST run from inside eval\ and all three
+failed `No such file` (resolved labeling\ and eval\ against eval\, not repo
+root). NOT a state disagreement — a cwd error. Re-run from REPO ROOT: pass. The
+durable repo-anchor fix is still DEFERRED (its own one-fix commit). Until then:
+run label.py/eval_loader.py/probe from repo root; run pilot_v0.py from eval\.
+
+## The 4 rows scored this session (continuing the J tally; live-1..6 are J's)
+Scale unchanged: ADVANCES (ship as-is) / SALVAGEABLE (right instinct, you'd edit
+to advance) / STALLS (costs a round-trip or misleads). cold trustworthy; recall
+hindsight-biased. Operator (Hugo) scored; Claude ran one notch HIGH three times
+(scored Salvageable where Hugo scored Stalls) — the agent avoided a danger cell
+but still failed to advance, and "avoided a mistake" is not throughput. Hugo's
+yardstick governed: "editing didn't beat scratch, I went to scratch" = STALLS.
+
+- live-7  recall  Stalls  Poway 23-top Menu#3 OFFSITE, repeat-claim. Content-free
+          holding reply ("follow up shortly with an estimate"). Never surfaced
+          the distance/minimum-spend gate that decides an offsite row. Correctly
+          avoided asserting history it lacks (dodged live-3 trap) — but only by
+          saying nothing. Tags: missing-product-knowledge; missing-tool-routing.
+          NOTE: Poway is the foundation §3 $80 delivery ANOMALY distance — a
+          confident clean-tier quote here would be wrong.
+
+- live-8  cold    Stalls  60-top Dec holiday dinner, Menu#5, open-bar. Asked
+          onsite-vs-offsite — answerable from the inquiry (60ppl = onsite large-
+          patio band 2.4) — and stopped. Operator went to scratch: confirmed
+          availability, ASSIGNED garden patio, affirmed menu + offered to build
+          quote, offered tasting (60>31), opened drinks by asking history not
+          fishing for a cap. Held tier-3 (no invented total). 2.4a clean (no
+          plated for 60). Availability + within-band patio assignment are
+          OPERATOR-ONLY (no calendar tool; 2.4 in-band is operator gut, §3) —
+          that part is access-gap not agent miss.
+          Tags: missing-product-knowledge; under-routing; needs-calendar-tool.
+
+- live-9  cold    Stalls  35-adult birthday dinner ONSITE, exploring, "frequent
+          guest". Event-date field 07/10/1961 = form mis-map of a 64th-birthdate.
+          needs_info. Routed buffet correctly (2.4a clean 3x). Operator scratched
+          it (confirm headcount, attach buffet menu, open beverages, offer
+          walkthrough). TWO terrain-gaps where spec is SILENT: (1) draft offered
+          indoor/outdoor as an open choice but the business does NOT offer indoor
+          EVENT seating unless asked, caps ~50, high F&B premium — NOT IN THE
+          FOUNDATION (owed §2 fix); (2) silently DROPPED the impossible 1961 date
+          instead of flagging — missing-date-anchor, omission-shape (vs live-5's
+          false-confirm shape), and this is a COLD instance.
+          Tags: missing-date-anchor; under-routing; foundation-gap-indoor-policy.
+
+- live-10 cold    Salvageable  20-25 patio CORPORATE celebration, 5 specific
+          product Qs, real future date (Jul 28). STRONGEST cold draft: agent
+          ANSWERED the product questions instead of deferring (the live-2/8/9
+          Stall pattern did NOT fire) — draft beer confirmed (TRUE, matches
+          operator), wine-separate-from-cellar, package = consumption-based from
+          both. 2.4a DISCRIMINATED correctly: offered plated-OR-buffet because
+          20-25 is the ONE valid plated band, honored casual lean, kept 3-course
+          upsell. Salvageable not Stalls: operator EDITED not scratched. NEW
+          FAILURE CLASS: tone-register-mismatch — draft too casual ("vibe") for a
+          big corporate lead; operator recalibrated UP to professional register
+          (same facts). Agent runs one voice, does not modulate by lead type
+          though 2.13 says operators do. Recurring: menu-link handoff deferred.
+          Tags: tone-register-mismatch; missing-tool-routing.
+
+- live-11 cold    Stalls  40-guest baby shower OFFSITE lunch, EXPLICIT $1-3K
+          budget, real future date (Aug 8). Danger cell BEHAVED: routed offsite/
+          buffet, did NOT offer the onsite-only estimator. STALLS anyway: holding
+          reply; operator scratched it and supplied the ENTIRE Tier-1 quote-
+          freely block — equipment $150 vs disposable, service staff $200/4hr,
+          delivery from $25 local, 5% catering fee, menu link w/ pricing +
+          estimate-on-lock. KEY: every item operator added is Tier-1 quote-
+          freely-UNPROMPTED per 2.8 — agent HAD the facts and withheld them,
+          treating all as withhold-until-lock. tier1-underdisclosure (sharper
+          than missing-product-knowledge: agent lacks the WHEN-to-volunteer rule,
+          not the facts). SECOND DEFECT: greeting rendered literal "Hi [First
+          name]," — agent parroted the empty Typeform field LABEL into the
+          salutation instead of dropping to generic "Hi there," as it DID on
+          prior empty-contact rows (live-8, 60-top). merge-field-leak,
+          inconsistent empty-contact handling; PII scan passed it correctly (not
+          a real name); caught by READING the draft, not by a check.
+          Tags: tier1-underdisclosure; merge-field-leak; missing-tool-routing.
+
+Roll-up at close:
+  COLD   n=9 (J's 4 + K's live-8/9/10/11): Adv 2, Salv 2, Stall 5 -> 44% saved.
+  RECALL n=3 (J's 2 + K's live-7):         Salv 1, Stall 2       -> 33% saved.
+DO NOT cite 44% as a hard number — it is a pilot read, swings on rows, but it is
+NOW past the 5-10 "usable read" threshold and the trend (down from 75% @ n=4) is
+the honest signal: the agent stalls ~half the time on THROUGHPUT.
+
+## Failure taxonomy — UPDATED. Now FIVE branches (J had 3).
+Reliable FLOOR (every danger cell clean across the session):
+  - plated-cap 2.4a: clean 4x (live-8 60, live-9 35, live-10 20-25 correctly
+    OFFERED plated in-band, live-11 offsite n/a). Agent reads "above 25 = buffet"
+    AND discriminates the one band where plated is valid. Durable positive.
+  - offsite/estimator danger cell: clean (live-11 did NOT offer onsite-only
+    estimator on an offsite row).
+  - tier-3 total withhold: held throughout (no invented totals/caps).
+  - PII email/phone scan: 0 leaks.
+Leaky CEILING (throughput), by frequency in the COLD tally:
+  1. tier1-underdisclosure / under-routing / missing-product-knowledge — DOMINANT
+     (live-2, live-7, live-8, live-9, live-11). Agent defers/withholds facts the
+     foundation says state-now or quote-freely. SHARPEST framing (live-11):
+     agent lacks the WHEN-to-volunteer rule (2.8 tiers), not the facts. Likely
+     prompt/spec-shaped, possibly cheap.
+  2. missing-tool-routing — menu-link handoff + estimator routing (live-1,
+     live-10, live-11). Operator hands a link; agent defers to "a proposal."
+  3. missing-date-anchor — 2 instances (live-5 recall false-confirm; live-9 cold
+     omission). No "today" anchor. Cheap deterministic fix.
+  4. tone-register-mismatch — NEW (live-10). One voice, no modulation by lead
+     type though 2.13 says operators modulate. 1 instance; watch for recurrence.
+  5. merge-field-leak — NEW (live-11). Empty-contact greeting leaked the form
+     field label. Cheap fix (generic-greeting fallback). 1 instance.
+DECISION MISS branch: still ZERO. No wrong qualified/declined/human_review the
+operator overturned. The withhold rail and the human gate held every row.
+
+## SCOPE LINES — held all session, NOT crossed
+- (a) Agent/prompt improvement: ZERO. The "go fix it and run again" move was
+  raised at close and NAMED as scope (a) and HELD. Patching mid-tally makes
+  every prior row measure a different agent. Each fix is its own one-variable
+  eval cycle vs the 0.959 / n=73 baseline. NOT a hot-patch.
+- (b) Foundation edits: ZERO. The indoor-policy gap surfaced live (live-9) and
+  was BANKED, not written. Joins the two J-banked foundation items.
+- (c) Gmail-read / inbox-pull / deploy / MCP: untouched. v0 stayed local/paste/
+  redact. PII redacted at source BEFORE every paste (two Typeform rows had live
+  name/phone/email — redacted to tokens before feeding; empty contact blocks =
+  nothing to redact).
+- (d) Public-repo flip / LinkedIn: untouched. Still gated on the full git-history
+  PII audit + diagnostics-pile disposition.
+- The PDF-estimate tool was raised (live-7) and NAMED as scope (a); live-11 made
+  the case for it concrete (operator hand-builds the offsite fee block every
+  time) but it was NOT built. Banked.
+
+## Foundation corrections owed — now THREE (scope b, a foundation session)
+1. 2.3 gratuity: rewrite "agent states proactively" -> operator-judgment-at-
+   review (Hugo decided in J the disclosure stays OUT of the agent). [from J]
+2. ADD $55 large-group 3-course UPSELL-ANCHOR to §2 (confirmed operator sales
+   play, live-6, not in the doc). [from J]
+3. NEW — INDOOR-EVENT POLICY GAP (live-9): the space matrix (2.4) and minimums
+   (2.5) are patio-only; there is NO indoor-event rule. Real policy per operator:
+   indoor event seating is NOT offered proactively, is asked-for only, capped
+   ~50, and carries a HIGH F&B premium. Add to §2 so the agent stops offering
+   indoor/outdoor as an open choice.
+
+## Agent fixes — priority RE-ORDERED by the cold tally (was J's order)
+J banked date-anchor FIRST (cheap). The COLD tally (the trustworthy one) now
+argues otherwise — date-anchor is the 3rd-most-frequent cold issue. Proposed
+order for the read-and-decide session (OPERATOR PICKS; this is a recommendation,
+not a mandate, n is still a pilot):
+  1. tier1-underdisclosure / quote-gate-disclosure rule — DOMINANT cold-Stall
+     cause; likely prompt/spec-shaped; gated on the §2.8 reading being correct
+     in the foundation. Highest value.
+  2. tool-routing: menu-link handoff (replaces PDF attach) + estimator routing
+     with the onsite-only guard intact.
+  3. date-anchor injection — cheap, deterministic, prevents a STALLS; still
+     worth doing, just not first.
+  4. merge-field-leak — generic-greeting fallback on empty contact. Cheap defect
+     fix, can ride with another cycle.
+  Each is ONE variable vs n=73. Do NOT bundle. The PDF tool and history/calendar
+  remain the expensive far end.
+
+## Deferred — carried forward (G/H/I/J/K)
+- Deliverable B (cold accrual): now n=9, a usable read. A future session reads
+  the FULL tally and decides what it means / picks the first eval cycle.
+- REPO-ANCHOR script path defaults (label.py LABEL_DB, probe --db, agent_v3
+  prompt-load) — its own one-fix commit. Until then the Goal-0 cwd workarounds.
+- DIAGNOSTICS PILE ~30 untracked files (name/PII-bearing + throwaways + the
+  `--help` litter file in eval\ + untracked notes entry/exit prompts). Full
+  disposition owed BEFORE any public flip. NEVER git add . while it exists.
+- 2 quarantined model_failed rows (18e15f53 {name-17}, 18da9fc1 {name-3}/{name-5});
+  re-redaction of those two still owed. 78 stale source_path rows. 19e5a9ca
+  edge_case_flag convention. All unchanged.
+- needs_info axis: more live evidence (live-9/11 decided needs_info, accepted)
+  but still not a clean baseline. Widen only on a real reason.
+- LANGUAGE + real-name PII voice-gate cells: still 3-of-5; gated on a non-paste
+  delivery mechanism v0 is not.
+- PUBLIC REPO flip — gated on FULL git-history PII audit (every blob). Its own
+  session. LinkedIn post HELD: a cold ADVANCES+SALVAGEABLE rate is the number
+  behind it; 44% @ n=9 is a number but the repo audit gates posting regardless.
+- Q2-Q4 export / n>=100 — demoted "if needed" (autonomous mode only).
+
+## Standing rules (unchanged)
+Direct, no praise, lead with the strongest counterargument, explicit confidence
+labels. Hugo runs ALL terminal commands; Claude edits/proposes files only. Split
+venvs: .venv=Google(export), venv=Anthropic(ingest/pytest/label/eval/pilot). One
+fix per commit, staged BY FILENAME, never git add . Prompt caching on from first
+commit. READ THE FULL AGENT INPUT before asserting any finding about a draft
+(pilot_v0 display limit 2000). This session was MEASUREMENT, not an eval cycle —
+no eval variable moved. Push back on scope creep; if a session drifts toward
+agent/prompt improvement before the read-and-decide, or a public flip before the
+git-history audit, NAME it and hold the line.
+
+## Next session candidates (operator picks ONE — they do NOT braid)
+1. READ-AND-DECIDE: take the full n=9 cold tally + 5-branch taxonomy and pick
+   the first eval cycle. The tally argues tier1-disclosure first, not date-anchor.
+2. FIRST EVAL CYCLE (only after 1, or if operator picks the target directly):
+   one variable, fresh baseline vs 0.959 / n=73. Likeliest target: quote-gate /
+   tier1-disclosure rule.
+3. FOUNDATION session: rewrite 2.3 gratuity, add $55 upsell-anchor, add the
+   indoor-event policy (§2). Some agent fixes are GATED on this being right.
+4. GIT-HISTORY PII audit (gates public flip) + diagnostics-pile disposition.
+Pick one at the TOP of the next chat. Do not braid.
