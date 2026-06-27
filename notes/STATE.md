@@ -1342,3 +1342,95 @@ do not work from this summary).
   code/template. Own session.
 - git-history PII audit — gate before any public flip. Own session.
 - Foundation -> repo-tracked file migration (NEW from M). Own session.
+## Session N — close block (FIRST WIRE-IN ATTEMPT: §2.3 — KILLED on danger-cell breach)
+
+OUTCOME: §2.3 (6+ auto-gratuity) attempted as the first foundation-rule wire-in.
+KILLED. Not a no-op — it moved the primary danger cell. The session's real
+deliverable is a STRUCTURAL FINDING that reframes the entire N track: the agent's
+draft prompt and its qualification classifier share context, so ANY draft-voice
+prompt edit can move the decision. "Additive low-risk content variable" is not a
+real category under the current agent_v3 architecture.
+
+### Goal 0 — passed, state matched STATE (with one correction)
+- label.py: 168/166/2/0. PASS.
+- eval_loader: 160 gradeable / 73 clean. PASS.
+- probe_body_artifacts: [B-FAIL]=0, 19 [B-OK] on the 2 quarantined rows. PASS.
+- log_outcome: 11 rows, COLD n=8 (Adv2/Salv2/Stall4), RECALL n=3 (Salv1/Stall2). PASS.
+- git status: ~33-file diagnostics pile, not swept. PASS.
+- git log CORRECTION: entry prompt expected M's STATE commit atop c188336. It was
+  NOT committed — M's STATE block was dirty in the working tree (J-pattern repeat,
+  3rd occurrence). Committed this session as 7d81e71 BEFORE any prompt work.
+  c188336 was HEAD; it is no longer.
+
+### prompt caching / standing rules: honored. agent_v3 reads prompt_v2.txt (line 64).
+
+### The variable: §2.3 wire-in (prompt_v3.txt = prompt_v2.txt + 1 BILLING STRUCTURE block)
+- Diff: clean, +4 lines after SERVICE FORMAT, nothing else touched. Single variable.
+- Block: state single-check + 20% auto-grat for in-restaurant group events of 6+,
+  category-gated (NOT plain reservations), "when in doubt do not state it."
+- Pointed agent_v3 at prompt_v3.txt (1-token swap line 64). Tested via pilot_v0
+  --stdin (reconstructed live-4 / live-5 inquiry shapes, not the real DB rows —
+  live-N → thread-id crosswalk not available; --stdin tests the rule on the shape).
+
+### THE KILL — v2/v3 comparison on the live-5 shape (9-top plain Sunday reservation)
+- v3: DECISION=declined. v2 (same inquiry, same qualify() path, prompt reverted):
+  DECISION=qualified. The §2.3 block is the only changed variable. It flipped a
+  real booking from qualified to declined.
+- qualified→declined is the primary danger cell's other face: a thrown-away lead.
+  pilot_v0's withhold logic then HIDES the draft — in a live pilot the booking
+  vanishes silently. Hard kill. Keep-or-kill criterion ("danger cells hold")
+  failed. No gratuity-wording fix is worth a prompt that drops leads.
+- Mechanism (confirmed, high confidence): agent_v3._classify (stage 2) forces
+  submit_qualification over the conversation AND PASSES THE FULL DRAFT SYSTEM_PROMPT.
+  The block's "a plain table reservation is not a large-group event" language gave
+  the classifier a new salient frame → read 9-top as mere reservation → declined.
+  Draft-voice instruction leaked into the decision. This was flagged as a risk
+  pre-run and underweighted ("almost certainly harmless"); the run disproved it.
+
+### Secondary result (subordinate to the kill)
+- §2.3 ALSO did not fire on the live-4 shape (in-restaurant 8-top "nothing fancy"
+  anniversary): draft routed regular dining correctly but stated NO gratuity line.
+  A-no. Cause: either over-timid boundary wording (the "when in doubt / nothing
+  fancy" escape hatch triggered silence on a case that should fire) or example-
+  absence — no EXAMPLE in prompt_v2.txt models a gratuity line, so the agent
+  pattern-matches the 3 concrete examples over the 1 abstract rule. Same failure
+  family as live-6 (concrete example beats abstract instruction) and EXAMPLE 3
+  teaching deferral. Moderate confidence on example-absence as primary.
+
+### THE STRUCTURAL FINDING (the real N reframe — write this down)
+agent_v3._classify passes the full draft-authoring SYSTEM_PROMPT into the
+qualification call. There is NO separation between draft-voice instruction and
+decision context. Therefore EVERY foundation-rule wire-in (§2.3, §2.8a, indoor,
+all ~12) enters classifier context and carries decision-contamination risk. The
+N premise — "wire confirmed rules in as low-risk content variables" — is built on
+a crack. No content variable is genuinely additive under this architecture.
+COROLLARY: the 73-row grader set may not contain a 9-top-style row, so a full
+grade_agent.py run might have MISSED this contamination. Eyeball-on-shape caught
+what the grader might not. The grader set likely needs the 9-top case added before
+it can guard this class of regression.
+
+### Repo state at close
+- prompt_v3.txt: DELETED (never staged; kill = delete untracked file). 
+- agent_v3.py: confirmed reading prompt_v2.txt (findstr verified). Back to pre-
+  session state. NO repo mutation from the killed variable.
+- 7d81e71 (M STATE close + N entry) is the only commit this session. This N close
+  block is the second.
+- §2.3 wording is NOT locked/saved — it was a tested-and-killed candidate. If
+  revisited, it must be re-derived against the decoupled architecture, not reused.
+
+### NEXT SESSION — recommended top (decouple, then resume wire-in)
+DECOUPLE _classify FROM THE DRAFT PROMPT. Give stage-2 classification its own
+minimal prompt (intent definitions only — effectively the submit_qualification
+schema's own descriptions), NOT the full draft-authoring SYSTEM_PROMPT. This cuts
+the contamination channel and makes the N wire-in track actually low-risk. It is
+an agent_v3.py change → OWN fresh baseline (re-run grade_agent.py, confirm 0.959 /
+declined→qualified=0 reproduces on the decoupled agent BEFORE it becomes the new
+baseline). Reproduction of the defect for the next session: v2 prompt qualifies
+the 9-top "Can I make a reservation for 9 people this Sunday at 6pm?"; the §2.3
+block made it decline. After decoupling, that same block should NOT move the
+decision — that is the decoupling's acceptance test.
+
+Other tracks unchanged/unbraided: §2.8a+§2.8b (now KNOWN to be 2 layers AND to
+carry the contamination risk above — gated on decouple), date-anchor/merge-field
+code fixes, git-history PII audit, foundation→repo migration. Add to backlog:
+grader set needs a small-plain-reservation row to guard qualified→declined.
