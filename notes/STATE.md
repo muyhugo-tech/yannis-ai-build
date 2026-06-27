@@ -1217,3 +1217,128 @@ git-history audit, NAME it and hold the line.
    indoor-event policy (§2). Some agent fixes are GATED on this being right.
 4. GIT-HISTORY PII audit (gates public flip) + diagnostics-pile disposition.
 Pick one at the TOP of the next chat. Do not braid.
+## Session M — close block (FOUNDATION cleanup — premise corrected mid-session)
+
+OUTCOME: Foundation documentation edited (3 edits applied + verified by diff).
+But the session's REAL deliverable is a finding that reframes the whole track:
+THE AGENT DOES NOT READ THE FOUNDATION. Its entire runtime spec is
+eval/prompt_v2.txt (43 lines / 635 words), read verbatim by eval/agent_v3.py
+(line 64: open("prompt_v2.txt").read() -> SYSTEM_PROMPT). The foundation is
+documentation; it is NOT wired into the agent. The three Session-M edits were
+scoped against a file the agent never consumes — they change ZERO agent behavior.
+
+### Goal 0 — all six checks PASSED, state matches STATE exactly
+- label.py status: 168/166/0/0/2/0. PASS.
+- eval_loader.py: 160 gradeable / 73 clean. PASS.
+- probe_body_artifacts.py: [B-FAIL]=0, 19 [B-OK] on the 2 quarantined rows
+  (18da9fc1, 18e15f53). PASS.
+- git log: c188336 (L's STATE correction) HEAD atop f0f1487/99d6373/6e39c13. PASS.
+- log_outcome.py: 11 rows, COLD n=8 (Adv 2/Salv 2/Stall 4, 50%),
+  RECALL n=3 (Salv 1/Stall 2, 33%). Matches L-corrected count. PASS.
+- git status: 31 untracked diagnostics, not swept/grown (SESSION_M_entry.md now
+  in the pile, expected). PASS.
+
+### Scope set: (A) three edits + confirm §2.8. §3 left for its own session.
+
+### What the session actually found (the reframe)
+The foundation lives ONLY in Project knowledge — no repo file, no git, no diff.
+Investigating where the agent gets its spec (because the foundation isn't on disk)
+surfaced the chain:
+- pilot_v0.py imports qualify from eval/agent_v3.py (line 75).
+- agent_v3.py reads eval/prompt_v2.txt verbatim into SYSTEM_PROMPT (lines 64-65).
+- grep for foundation phrases (prix-fixe, auto-gratuity, withhold until menu lock,
+  quote freely) across ALL repo .py: ZERO hits. No foundation rule is inlined
+  anywhere in agent code.
+- prompt_v2.txt contains: voice rules, a flat withhold-pricing rule, a
+  resolve_service_options tool instruction, 3 worked examples. It contains NONE
+  of: gratuity rule, indoor policy, §2.8 quote tiers, menu-link handoff, or ~12
+  other Section 2 rules.
+
+COROLLARY — two pilot-tally conclusions were misattributed and are now corrected:
+- live-4 "agent miss" (omitted 6+ auto-grat) is WRONG. The rule is not in
+  prompt_v2.txt. The agent cannot miss a rule it was never given. Re-tag:
+  rule-absent-from-prompt, not agent-miss.
+- live-6 "led with prix-fixe BY INSTINCT, a play not in the foundation" is WRONG.
+  EXAMPLE 2 in prompt_v2.txt demonstrates exactly that upsell (12-16 guest patio:
+  3-course private-patio path first, larger space second). The agent pattern-
+  matched the example. Re-tag: example-driven, not instinct.
+These re-tags do NOT change the n=8 scoring (Adv/Salv/Stall unchanged); they
+change the CAUSE attribution, which is what Session N acts on.
+
+### The three edits — applied to Project-knowledge foundation, diff-verified
+Mechanism: Project knowledge has no in-place edit; whole file replaced. Verified
+via `git diff --no-index oldfile.txt newfile.txt` BEFORE upload — 5 changed
+regions, zero spurious. Bytes confirmed clean (console mis-rendered UTF-8 dashes/
+§ but file bytes correct — display artifact, same family as the pilot-truncation
+lesson). Uploaded; old file deleted.
+1. §2.3 — clarity note only. Foundation was ALREADY correctly scoped (20% auto-
+   grat lives in in-restaurant-large-group category). Added: 6+ threshold +
+   plain-reservation exclusion, to disambiguate live-4 (8-top large-group, applies)
+   vs live-5 (9-top plain res, does not). Discriminator confirmed by operator:
+   service category, NOT operator mood. The spec was right; the prompt omits it.
+2. §2.4b — NEW. Upsell anchor on multi-path offers. Documents behavior the prompt
+   already produces via EXAMPLE 2. Generalization "anchor high, offer floor as
+   fallback" is moderate-confidence (1 example + live-6); flagged for future-batch
+   confirmation.
+3. §2.4c — NEW. Indoor event seating. Operator-confirmed params: not offered
+   unless asked, ~50 cap, $3,000 F&B minimum, agent routes to patio + stays silent
+   by default. Closes live-9 gap. Foundation was previously silent.
+Changelog bumped to v4. Title # restored (lost in a copy artifact).
+
+### §2.8 VERDICT (gates Session N): CORRECT AS-IS. No edit.
+The three tiers (T1 quote-freely-unprompted / T2 on menu signal / T3 withhold-
+until-lock) are right. The tier1-underdisclosure failure (live-11) is NOT a §2.8
+error — it is §2.8 being ABSENT from prompt_v2.txt. The prompt's only disclosure
+rule is the flat "reveal NO pricing, ever," so the agent withholds everything.
+SESSION N IS UNBLOCKED.
+
+### TRAP for Session N (write this down):
+prompt_v2.txt's flat "no dollar amounts, no minimums, ever, even when asked"
+DIRECTLY CONTRADICTS §2.8 Tier-1, which says quote delivery fee / NA package
+($3) / linen ($10) / service-staff add-on FREELY and unprompted — those ARE
+dollar amounts. So wiring §2.8 in is NOT an addition, it is a CONFLICT
+RESOLUTION: the blanket no-numbers rule must become "no menu/total pricing;
+Tier-1 structural fees quoted freely." This sits directly on top of the Tier-3
+danger cell. Sequence carefully.
+
+### NEW GAP (deferred, add to backlog):
+Foundation is Project-knowledge-ONLY — no repo file, no version control, no diff.
+Every foundation change has the full-rewrite-and-re-upload problem (mitigated this
+session by exporting + diffing before upload, but that's manual). Fix (own
+session): migrate foundation to a repo-tracked .md, Project knowledge syncs FROM
+it. Not done in M (scope creep).
+
+### NO eval variable moved. NO agent code changed. Foundation/docs only.
+
+---
+
+## Session N — entry (REFRAMED by M's finding)
+N IS NO LONGER "the tier1 eval cycle." It is: WIRE THE CONFIRMED FOUNDATION RULES
+INTO prompt_v2.txt, as sequenced eval variables, one at a time, each baselined
+against the 0.959 / n=73 / declined->qualified=0 baseline. The tier1-
+underdisclosure cycle is a SUBSET of this — same root cause (rule absent from
+prompt), not a separate track.
+
+Candidate variables (each its own eval cycle, ONE at a time, keep-or-kill):
+- §2.8 disclosure tiers (the live-11 fix) — HIGHEST priority, but it is a
+  conflict-resolution against the prompt's flat no-pricing rule (see TRAP).
+  Danger cell it must NOT break: Tier-3 total withhold. Secondary guard:
+  offsite/estimator (no onsite-only estimator on offsite rows).
+- §2.3 6+ auto-grat (the live-4 fix) — additive, lower risk.
+- §2.4c indoor policy (the live-9 fix) — additive.
+DO NOT bundle these into one prompt rewrite. DO NOT rebuild prompt_v2.txt from
+scratch (operator floated it in M; held the line — a full rebuild moves every
+variable at once, destroys attribution, re-fits the eval set to the n=8 failures,
+and discards the only baseline). N produces prompt_v3.txt by ADDING to v2, one
+variable per commit, diff legible, 0.959 baseline preserved.
+
+Pre-N verify (Goal 0, repo root): same six checks as M. PLUS: re-read
+prompt_v2.txt verbatim before editing (it IS the spec; read the full 43 lines,
+do not work from this summary).
+
+### Other tracks (still separate, unbraided):
+- date-anchor / merge-field-leak — deterministic fixes (live-5 missing today-
+  anchor; live-11 "Hi [First name]" leak). NOT a prompt-content cycle; these are
+  code/template. Own session.
+- git-history PII audit — gate before any public flip. Own session.
+- Foundation -> repo-tracked file migration (NEW from M). Own session.
