@@ -152,6 +152,20 @@ SUBMIT_QUALIFICATION_SCHEMA = {
 }
 
 
+# Session O decouple: the classifier gets its OWN minimal prompt, sourced from
+# the intent definitions (the submit_qualification schema description) rather
+# than the draft-authoring SYSTEM_PROMPT. This cuts the channel by which
+# draft-voice prompt edits (e.g. a billing block) leaked into the qualification
+# decision. _write_reply is unchanged and still uses SYSTEM_PROMPT verbatim.
+CLASSIFY_SYSTEM_PROMPT = (
+    "You are classifying an inbound inquiry to Yanni's Bar & Grill into "
+    "exactly one qualification status. Decide based only on the inquiry and "
+    "the conversation so far. Do not consider tone, wording, or how a reply "
+    "should be written -- only what the sender wants.\n\n"
+    + SUBMIT_QUALIFICATION_SCHEMA["description"]
+)
+
+
 def _dispatch_tool(name: str, tool_input: dict) -> tuple[str, bool]:
     """Run a service tool call. Return (result_text, is_error).
 
@@ -239,7 +253,7 @@ def _classify(client: Anthropic, messages: list) -> QualificationStatus:
         system=[
             {
                 "type": "text",
-                "text": SYSTEM_PROMPT,
+                "text": CLASSIFY_SYSTEM_PROMPT,
                 "cache_control": {"type": "ephemeral"},
             }
         ],
