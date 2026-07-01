@@ -1434,3 +1434,68 @@ Other tracks unchanged/unbraided: §2.8a+§2.8b (now KNOWN to be 2 layers AND to
 carry the contamination risk above — gated on decouple), date-anchor/merge-field
 code fixes, git-history PII audit, foundation→repo migration. Add to backlog:
 grader set needs a small-plain-reservation row to guard qualified→declined.
+## Session O — close block (DECOUPLE _classify FROM DRAFT PROMPT — SHIPPED, clean)
+
+OUTCOME: The contamination channel N found is CUT. _classify no longer reads the
+draft-authoring SYSTEM_PROMPT; it gets CLASSIFY_SYSTEM_PROMPT (minimal intent-only,
+sourced from SUBMIT_QUALIFICATION_SCHEMA.description + one "ignore tone/wording"
+sentence). _write_reply unchanged. Acceptance test PASSED: the §2.3 billing block
+that flipped the 9-top qualified→declined under the coupled build no longer moves
+the decision (stays qualified) — the draft block reaches _write_reply but the
+classifier never sees it. Commit 801ce96, eval/agent_v3.py by filename only.
+
+### Goal 0 — all six passed, state matched STATE exactly
+- label.py: 168/166/2/0. eval_loader: 160/73. probe: [B-FAIL]=0, 19 [B-OK].
+- git log: 2e53799 HEAD. log_outcome: COLD n=8, RECALL n=3. git status: pile clean,
+  STATE.md committed (J-pattern NOT repeated — N committed it). All PASS.
+
+### Pre-decouple baseline (re-measured live, not trusted from STATE)
+- overall 0.959 | declined→qualified=0 | qualified→declined=2 (rows 23, 56).
+
+### The edit (one change, agent_v3.py only)
+- EDIT 1: module-level CLASSIFY_SYSTEM_PROMPT after SUBMIT_QUALIFICATION_SCHEMA,
+  = "ignore tone/wording, decide what the sender wants" + the schema's own four
+  intent definitions. One source of truth with the grader's contract.
+- EDIT 2: _classify system block SYSTEM_PROMPT → CLASSIFY_SYSTEM_PROMPT. Nothing
+  else touched (tool_choice, messages+[nudge], max_tokens=200, cache_control stay).
+- findstr verified: SYSTEM_PROMPT used once (_write_reply); CLASSIFY_SYSTEM_PROMPT
+  defined once, used once (_classify). Option A: conversation history preserved,
+  only the system block changed.
+
+### Acceptance test (the pass condition — fail-fast, run before the grade)
+- Recreated §2.3 prompt_v3.txt (TEST ARTIFACT), pointed agent at it, ran 9-top
+  "Can I make a reservation for 9 people this Sunday at 6pm?" via pilot_v0 --stdin.
+- Decision = qualified → PASS. Coupled build declined the same input. Channel cut.
+- Reverted agent to prompt_v2.txt, deleted prompt_v3.txt. O ships NO §2.3 wire-in.
+
+### Post-decouple grade run (required — decision-path code change, own baseline)
+- loaded 73 clean cold inbounds. overall 0.959 (unchanged).
+- declined→qualified = 0 (primary danger cell — HOLDS).
+- qualified→declined = 1, row 56 only. Row 23 flipped to CORRECT. Set {23,56}→{56}:
+  subset of allowed, no third, no shifted row. Consistent with "more stable
+  classifier" prediction (moderate confidence on mechanism; do NOT claim the
+  decouple "improved accuracy" — overall held flat, row 23 is n=1).
+- Off-cell misses (non-guarded): [34] needs_info→qualified, [73] declined→needs_info.
+  3/73 total, no regression.
+
+### Repo state at close
+- Commit 801ce96 (agent_v3.py decouple). prompt_v3.txt deleted (test artifact, never
+  staged). ~33 diagnostics pile untouched. agent_v3.py confirmed back on prompt_v2.txt.
+
+### ENV NOTE (not a repo change — a lever if wanted)
+- Both venvs hit CERTIFICATE_VERIFY_FAILED on the Anthropic API: TLS-intercepting
+  root CA in the Windows cert store, absent from certifi's bundle. Worked around
+  out-of-band via temp sitecustomize.py calling truststore.inject_into_ssl() on
+  PYTHONPATH (deleted, no repo file touched). truststore already installed in both
+  venvs. Permanent fix without the env hack = wire truststore.inject_into_ssl() at
+  process start. Its own decision; NOT done this session.
+
+### THE UNBLOCK (what O buys)
+The wire-in track is now low-risk. §2.3, §2.8, indoor, and every other foundation
+rule can be re-attempted as GENUINELY draft-only variables — a prompt edit reaches
+_write_reply, not _classify. Each still gets its own eval cycle, one variable, fresh
+baseline vs 0.959. §2.3 must be RE-DERIVED against the decoupled architecture, not
+reused from the killed N block. BACKLOG unchanged: grader set still needs a 9-top-
+class row (the acceptance test caught what the 73 rows can't); date-anchor/merge-field
+code fixes; git-history PII audit (gates public flip); foundation→repo migration;
+diagnostics-pile disposition; repo-anchor path defaults.
