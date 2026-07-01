@@ -13,3 +13,22 @@ threads_batch2_deferred/
 labeling/audit_names_local.txt
 threads*/
 *.db.bak*
+
+# --- Cleanup track (2026-07-01): keep local, never enter history ---
+# Reversible archive of spent single-use diagnostics (moved, not deleted).
+_archive/
+# Per-session scratch entry/close notes + foundation seed doc (the latter
+# pending the separate foundation->repo migration session).
+notes/SESSION_J_entry.md
+notes/SESSION_M_entry.md
+notes/SESSION_O_entry.md
+notes/STATE_session_J_block.md
+notes/yannis-ai-build-foundation.txt
+# PII-bearing remediation records: kept LOCAL as the cross-check surface for
+# the pending git-history PII audit. They embed real customer names
+# ({name-17} / {name-3} / {name-5}) and must never be committed.
+labeling/quarantine_{name-17}.py
+labeling/check_sources.py
+labeling/delete_batch3.py
+labeling/probe_body_leaks.py
+labeling/verify_ingest_redaction.py
