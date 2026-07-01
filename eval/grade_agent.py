@@ -24,6 +24,20 @@ Run:  cd eval
 Needs: ANTHROPIC_API_KEY in the environment.
 """
 
+# --- TLS: trust the OS certificate store (Windows/corporate root CAs) ---
+# The Anthropic API is reached through a TLS-intercepting root CA present in
+# the OS cert store but absent from certifi's bundle, so plain requests fail
+# with CERTIFICATE_VERIFY_FAILED. truststore routes verification through the
+# OS store. Guarded: a no-op if truststore is not installed, so this never
+# hard-breaks an environment that does not need it. Must run before the
+# anthropic client opens a connection.
+try:
+    import truststore
+    truststore.inject_into_ssl()
+except ImportError:
+    pass
+# -----------------------------------------------------------------------
+
 import sys
 
 from anthropic import Anthropic
