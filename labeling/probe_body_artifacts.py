@@ -62,6 +62,7 @@ import os
 import re
 import sqlite3
 import sys
+from pathlib import Path
 
 
 # ---------------------------------------------------------------------------
@@ -244,7 +245,7 @@ def scan_files(threads_glob: str):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--db", default="labels.db")
+    ap.add_argument("--db", default=Path(__file__).resolve().parent / "labels.db")
     ap.add_argument("--threads-glob", default=os.path.join("..", "threads*"))
     ap.add_argument("--quiet-cleared", action="store_true",
                     help="suppress the CLEARED name list (noise) in output")

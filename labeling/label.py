@@ -17,10 +17,11 @@ Disciplines enforced here:
 """
 import argparse, json, os, re, sqlite3, sys, uuid
 from datetime import datetime, timezone
+from pathlib import Path
 
 import redact
 
-DB_PATH     = os.environ.get("LABEL_DB", "labels.db")
+DB_PATH     = os.environ.get("LABEL_DB", Path(__file__).resolve().parent / "labels.db")
 SCHEMA_PATH = os.path.join(os.path.dirname(__file__), "schema.sql")
 
 ENUMS = {
