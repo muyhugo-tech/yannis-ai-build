@@ -92,41 +92,105 @@ def check_no_emoji(text: str) -> CheckResult:
 
 
 # ---------------------------------------------------------------------------
-# Check 3: no pricing in the initial response.
+# Check 3: no pricing in the initial response  --  §2.8 three-tier disclosure.
 #
-# The operator never reveals pricing in a first reply; the agent directs to
-# a call or follow-up. This is the only check with real false-positive
-# risk: a reply with a number is not necessarily a reply with a price.
-#   "we can seat up to 50"        -> a number, NOT a price  (must pass)
-#   "the menu is $46 per person"  -> a price                (must fail)
+# Not every dollar figure is forbidden. The operator may quote concrete
+# ADD-ON line items in a first reply (delivery, rentals, linen, staff, a
+# beverage package) -- those are Tier-1 and ALLOWED. What must never appear
+# is a menu/per-head price (Tier-2) or a total/estimate/quote (Tier-3, the
+# danger cell: it reads as a committed number). So we do not ask "is there a
+# number" -- we ask, for each dollar figure, "what is it attached to?":
+#   "delivery is $50"            -> Tier-1, attributed   (pass)
+#   "the menu is $46 per person" -> Tier-2, per-head     (fail)
+#   "your total comes to $1,840" -> Tier-3, a total      (fail)
+#   "it would be $75"            -> unattributed         (fail, conservative)
+#   "we can seat up to 50"       -> not money at all      (pass)
 #
-# We look for two signals: a dollar amount ($ followed by digits), or
-# price-phrasing ("per person", "per guest", "/person", "/guest") near a
-# number. We deliberately do NOT flag bare numbers, to avoid failing on
-# guest counts, dates, or times.
+# Mechanics: find each money figure (_MONEY), take a ~60-char window around
+# it, and classify by what shares that window. Tier-3 phrasing fails no
+# matter what else is there. A Tier-1 keyword within the window attributes
+# the figure and clears it. Per-person phrasing WITHOUT a Tier-1 keyword is
+# Tier-2 and fails. Anything left over -- a bare figure with no attribution
+# -- fails by conservative default. Bare numbers (guest counts, dates,
+# times) are never money and never flagged.
+#
+# This is GOOD, not PERFECT: attribution is proximity, not parsing, so a
+# Tier-1 keyword that happens to sit near an unrelated menu price would
+# wave it through. That is the deliberate bias -- it errs toward matching
+# the operator's real add-on quoting, and the danger cell (Tier-3 totals)
+# fails unconditionally regardless of any nearby keyword.
 #
 # This is the one check that earns its own test cases (see __main__).
 # ---------------------------------------------------------------------------
-_DOLLAR = re.compile(r"\$\s?\d")
-_PER_PERSON = re.compile(r"(per\s+(person|guest|head)|/\s?(person|guest))", re.IGNORECASE)
-_NUMBER_NEAR_PER = re.compile(
-    r"\d+\s*(dollars?|usd)?\s*(per\s+(person|guest|head)|/\s?(person|guest))",
+_CONTEXT = 60  # chars on each side of a money figure that count as "near"
+
+# A money figure: a $-amount, or "<number> dollars/USD".
+_MONEY = re.compile(
+    r"\$\s?\d[\d,]*(?:\.\d+)?"                       # $50  $3  $1,840  $46.50
+    r"|\b\d[\d,]*(?:\.\d+)?\s*(?:dollars?|usd)\b",   # 46 dollars  46 USD
+    re.IGNORECASE,
+)
+
+# Tier-1 add-on line items. A figure attributed to one of these is allowed.
+_TIER1_KEYWORDS = re.compile(
+    r"\b(?:"
+    r"deliver(?:y|ies|ed|ing)?"            # delivery
+    r"|equipment|chafing|platter"          # rental hardware
+    r"|rental|rent(?:ed|ing|s)?"           # rental
+    r"|linen|napkin"                       # linen / napkin
+    r"|cutlery|disposable"                 # cutlery / disposable
+    r"|service staff|staff|server"         # service staff / server
+    r"|soft[\s-]?drinks?|beverages?|drinks?"  # beverage terms
+    r"|na"                                 # NA (non-alcoholic)
+    r")\b",
+    re.IGNORECASE,
+)
+
+# Tier-3 danger cell: a committed total/estimate/quote. Fails regardless of
+# any nearby Tier-1 attribution.
+_TIER3_TOTAL = re.compile(
+    r"\b(?:total|comes to|estimate of|quote of|all[\s-]?in|altogether)\b",
+    re.IGNORECASE,
+)
+
+# Tier-2 signal: per-head / menu pricing. Fails only when NOT Tier-1 attributed.
+_PER_UNIT = re.compile(
+    r"(?:per\s+(?:person|guest|head)|/\s?(?:person|guest|head))",
     re.IGNORECASE,
 )
 
 
 def check_no_pricing(text: str) -> CheckResult:
-    signals = []
-    if _DOLLAR.search(text):
-        signals.append("dollar amount")
-    if _NUMBER_NEAR_PER.search(text):
-        signals.append("number + per-person phrasing")
-    if signals:
+    for m in _MONEY.finditer(text):
+        lo = max(0, m.start() - _CONTEXT)
+        hi = min(len(text), m.end() + _CONTEXT)
+        window = text[lo:hi]
+        figure = m.group(0).strip()
+
+        # Tier 3 -- total/estimate/quote: fails regardless of attribution.
+        if _TIER3_TOTAL.search(window):
+            return CheckResult(
+                "no_pricing_in_initial_response", False,
+                f"Tier-3 total/estimate/quote disclosure near {figure!r}",
+            )
+        # Tier 1 -- attributed to an add-on line item: allowed, keep scanning.
+        if _TIER1_KEYWORDS.search(window):
+            continue
+        # Tier 2 -- per-head/menu price with no Tier-1 attribution: fails.
+        if _PER_UNIT.search(window):
+            return CheckResult(
+                "no_pricing_in_initial_response", False,
+                f"Tier-2 per-person/menu pricing without Tier-1 attribution near {figure!r}",
+            )
+        # Conservative default -- an unattributed figure fails.
         return CheckResult(
             "no_pricing_in_initial_response", False,
-            f"pricing detected: {', '.join(signals)}",
+            f"unattributed pricing figure {figure!r}",
         )
-    return CheckResult("no_pricing_in_initial_response", True, "no pricing detected")
+    return CheckResult(
+        "no_pricing_in_initial_response", True,
+        "no disclosed pricing (Tier-1 attributed add-on figures allowed)",
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -171,8 +235,19 @@ if __name__ == "__main__":
         ("Looking forward to it \U0001F389", "no_emoji", False),
         ("We can seat up to 50 guests on the patio.", "no_pricing_in_initial_response", True),
         ("Your event is on 6/12 at 2pm.", "no_pricing_in_initial_response", True),
+        # --- §2.8 three-tier disclosure ---
+        # Tier-1: figure attributed to an add-on line item -> ALLOWED.
+        ("Delivery to your office is $50.", "no_pricing_in_initial_response", True),
+        ("Equipment rental is $150 and our NA package is $3 per guest.", "no_pricing_in_initial_response", True),
+        ("Service staff are $200 per staff member.", "no_pricing_in_initial_response", True),
+        ("We can seat up to 50 guests.", "no_pricing_in_initial_response", True),  # bare number, not money
+        # Tier-2: per-head/menu price, no Tier-1 attribution -> FAIL.
         ("The reception menu is $46 per person.", "no_pricing_in_initial_response", False),
         ("It runs 46 dollars per guest.", "no_pricing_in_initial_response", False),
+        # Tier-3: total/estimate/quote -> FAIL regardless of attribution.
+        ("Your total comes to $1,840.", "no_pricing_in_initial_response", False),
+        # Unattributed figure -> FAIL (conservative default).
+        ("It would be $75.", "no_pricing_in_initial_response", False),
     ]
     failed = 0
     for text, check_name, should_pass in cases:
