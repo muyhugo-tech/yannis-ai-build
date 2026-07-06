@@ -39,8 +39,9 @@ except ImportError:
 # -----------------------------------------------------------------------
 
 import sys
+import time
 
-from anthropic import Anthropic
+from anthropic import Anthropic, APIConnectionError
 
 from agent_output_schema import normalize_status
 from eval_loader import load_gradeable_inbounds, InboundRow
@@ -65,7 +66,24 @@ def pairs_for_real_agent(client: Anthropic, rows: list[InboundRow],
     for i, row in enumerate(rows, 1):
         true_status = normalize_status(row.qualification_decision).value
         try:
-            pred = qualify(client, row.inquiry_text).status.value
+            # Retry ONLY transient connection drops (APIConnectionError, which
+            # also covers its APITimeoutError subclass). 3 attempts total, with
+            # 2s then 4s backoff. Any other exception (schema/auth/bad-request)
+            # is not caught here and falls straight through to the ERROR handler
+            # below, unchanged. On the final failed attempt the connection error
+            # re-raises into that same handler, so ERROR behavior is identical.
+            for attempt in range(1, 4):  # 1 initial + 2 retries
+                try:
+                    pred = qualify(client, row.inquiry_text).status.value
+                    break
+                except APIConnectionError as e:
+                    if attempt == 3:
+                        raise
+                    delay = 2 ** attempt  # 2s, then 4s
+                    if verbose:
+                        print(f"  row {i}: {type(e).__name__}, "
+                              f"retry {attempt}/2 in {delay}s...")
+                    time.sleep(delay)
         except Exception as e:
             # One bad row must not sink the whole run. Record it as a
             # distinct 'ERROR' prediction so it shows up in the confusion
