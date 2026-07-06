@@ -1549,4 +1549,86 @@ authored Tier-1 disclosure example. Two commits this cycle:
   (confirmed-positive, gates public flip); foundation→repo migration; 02 stale line;
   agent_v3 prompt-load path anchor (deferred from path-anchor session); stale line-18
   comment in agent_v3.py mentions prompt_v2 (cosmetic).
+  ## Session Q — close block (TIER-1 VOLUNTEERING ON OFFSITE SHAPES — SHIPPED, prompt_v4)
+
+OUTCOME: The Tier-1 under-surfacing residual (P's pilot #1) is addressed. prompt_v4.txt
+adds ONE bullet after the Tier-1 bullet: on offsite/delivery inquiries, volunteer
+equipment + staff unprompted and address the delivery fee (one tier if distance known
+<=15mi; depends-on-exact-location with NO tier list if unknown). Agent pointer v3->v4.
+Commit 42daf83 (prompt_v4.txt + agent_v3.py, by filename).
+
+### Goal 0 — all six passed, no env var / no --db flag needed (a00d3ef confirmed honest)
+label 168/166/2/0; loader 160/73; probe [B-FAIL]=0, 19 [B-OK]; log bdbb5a8 HEAD;
+tally 11 rows COLD n=8 RECALL n=3; tree clean.
+
+### PRE-WORK: 1315ebb scope check RESOLVED — verdict (a), no scope violation
+- --stat: eval/voice_checks.py ONLY. Hunk map: @@ -92,41 +92,105 @@ (check rewrite)
+  + @@ -171,8 +235,19 @@ (__main__ cases). 64+11=+75 net, reconciles with stat.
+- pii_email_phone_scan lives in pilot_v0.py (lines 254/256/272), added in d0cb3a2
+  (the withhold-on-declined / display-limit commit). Pre-existing pilot-side scan.
+- voice_checks __main__ pasted IN FULL: 14/14 OK. P's step-1 debt cleared.
+
+### THE VARIABLE — Option 1 (rule bullet), TWO iterations before pilots passed
+- v4 draft 1: "quote the tier when known; otherwise say depends" — FAILED pilot 1.
+  Draft said depends AND enumerated the full tier table ($25/$50/$75) as conditionals;
+  checker caught '$25' unattributed and would have withheld. The "otherwise" branch
+  was not exclusive enough to override the Tier-1 bullet's open invitation.
+- v4 draft 2 (shipped): fee branch made exclusive — "quote that ONE tier" /
+  "do not list the tier amounts". Also: an edit tangle mid-session left a duplicated
+  fragment + literal "new:" line in the file; caught by findstr region check before
+  any run. Lesson reconfirmed: verify edited bytes before running, every time.
+
+### Pilots 5/5 (fail-fast, before grade)
+1. P's pilot-#1 shape (reconstructed — P's exact bytes not saved; logged): PASS.
+   Depends-line present, ZERO tier amounts, equipment $150 + staff $200 volunteered,
+   Tier-3 held, qualified, 4/4 checks. The target behavior moved.
+2. Mira Mesa fee ask: $50 and ONLY that tier. Near-verbatim EXAMPLE 3 (shape matches;
+   parroting watch unchanged).
+3. Oceanside past-15mi: NO fee, depends-on-address, did not refuse. DANGER CELL HELD.
+   Read-note: draft said "outside our standard delivery radius" — softer than refusal
+   but faintly frames past-15mi as exception vs 2.6a's normal-inquiry stance. Operator
+   would likely cut the line. Logged, not gated.
+4. 100p total ask: no total, EXAMPLE-1 route, Tier-3 held.
+5. Onsite 12-16 patio (overcorrection guard): CLEAN — no delivery/equipment/staff
+   block on the onsite shape. The bullet's offsite scoping held.
+
+### Grade runs (73 clean) — TWO runs, rules pre-committed before run 2
+- Run 1 (clean): overall 0.973 vs 0.986 baseline. dq=0 HOLDS. qd={} HOLDS (row 56
+  stayed correct, qualified recall 1.000). Misses: [34] needs_info->qualified,
+  [73] declined->needs_info (permanent).
+- Run 2 (INVALID headline — rows 24-29 APIConnectionError, 6 rows; 0.904 measures
+  the network): row 34 graded clean OUTSIDE the error block and flipped CORRECT.
+  Per pre-committed rule: row 34 is NOISE (wrong in O, right in P, wrong run-1,
+  right run-2). No third roll taken.
+- RECORDED NUMBER: 0.973 (run 1), with row-34-unstable note. Honest claim: overall
+  within noise of baseline, both danger cells held across both runs, target behavior
+  confirmed. Do NOT claim v4 "cost" or "gained" accuracy.
+- API errors: transient connection drops, self-recovered, signature differs from the
+  cdb7c77 TLS failure. Watch item; if next grade run errors, add retry logic to
+  grade_agent.py (its own change).
+
+### BACKLOG (adds/updates)
+- checker phrasing-sensitivity gap: check_no_pricing recognizes "delivery would be
+  $50" as attributed but flagged "the fee is $25" in equivalent context (run-1 draft-1
+  evidence). Backlog, own cycle if it bites again.
+- FROM-PRICE OPEN QUESTION (parked, corpus item, NOT a gate): live-11's operator
+  reply gave "delivery from $X local" — a from-price anchor on a no-distance shape.
+  If that is the real house behavior, v4's say-depends-quote-nothing branch encodes
+  the wrong rule. Test against corpus in a future batch before any prompt change.
+- pilot-3 "standard radius" framing (above) — candidate wording watch, not a change.
+- Project instructions STILL stale ("unanswered delivery rule" — answered in P);
+  fired 4+ times this session. Swap at next settings visit.
+- Unchanged: git-history PII audit (confirmed-positive, gates public flip); holdout
+  from Q2-Q4 export; foundation->repo migration + file-02 stale line; agent_v3
+  prompt-load path anchor (still deferred, prompt cycles active); stale line-18
+  comment (now says prompt_v2, doubly stale — batch with next agent_v3 code change);
+  grader 9-top row; EXAMPLE-3 parroting watch.
+
+### NEXT SESSION — candidates (pick one, do not braid)
+- git-history PII audit (human-eyes; the longest-standing gate)
+- checker phrasing-sensitivity fix (small, self-contained)
+- foundation->repo migration (+ 02 line fix rides along; PII-scan before staging)
+Baseline for any future prompt work: 0.973/run-1 with row-34-noise note; constraints
+unchanged: dq=0, qd={}, Tier-3 withhold, no past-15mi fee, no tier-list on unknown
+distance (NEW, this session's addition to the danger-cell family).
   
