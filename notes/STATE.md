@@ -1499,3 +1499,54 @@ reused from the killed N block. BACKLOG unchanged: grader set still needs a 9-to
 class row (the acceptance test caught what the 73 rows can't); date-anchor/merge-field
 code fixes; git-history PII audit (gates public flip); foundation→repo migration;
 diagnostics-pile disposition; repo-anchor path defaults.
+## Session P — close block (§2.8a + 2.6a WIRE-IN — SHIPPED, clean, best grade to date)
+
+OUTCOME: The tier1-underdisclosure failure class (4 of 8 cold Stalls) is addressed
+at the prompt layer. prompt_v3.txt replaces the flat no-pricing rule with the §2.8
+three-tier policy + the 2.6a past-15mi never-quote rule; EXAMPLE 3 (which TAUGHT
+the deferral failure — it was the Poway/live-7 shape) replaced with an operator-
+authored Tier-1 disclosure example. Two commits this cycle:
+  - 1315ebb: voice_checks.py check_no_pricing rewritten to three-tier logic
+    (Tier-1 attributed figures pass; Tier-2/3/unattributed fail). Instrumented
+    FIRST as a verified no-op on baseline drafts, so the prompt change landed
+    against a gate that could score it.
+  - <this commit>: prompt_v3.txt + agent_v3.py pointer v2->v3.
+
+### Pilot shapes (fail-fast, run before the grade — 5/5 clean)
+- live-11 shape (40-guest offsite, budget, quote ask): deferral GONE, buffet routed,
+  Tier-3 lock line held. Residual: Tier-1 under-surfaced (no equipment/staff offer)
+  — improvement not perfection, logged below.
+- live-7 shape (23p Menu #3, Mira Mesa ~8mi, direct fee ask): quoted $50 correctly,
+  offered equipment $150 + staff $200, total withheld. Near-verbatim EXAMPLE 3 —
+  the example teaches, as expected; watch for over-parroting on non-matching shapes.
+- past-15mi shape (Oceanside): NO fee stated, no tier extrapolated, "depends on the
+  exact address" + did not say "we don't deliver there". NEW DANGER CELL HELD.
+- total-ask (100 people): no total, EXAMPLE-1 qualifying-question route. Tier-3 held.
+- bonus Typeform low-quality lead: needs_info (correct on "just exploring"), no PII
+  slot leakage from empty form fields, nothing quoted.
+
+### Grade run (73 clean cold inbounds)
+- overall 0.986 (prior baseline 0.959).
+- declined→qualified = 0 (primary danger cell HOLDS).
+- qualified→declined = {} — row 56 flipped CORRECT. qualified now 1.000/1.000.
+- Sole miss: row 73 declined→needs_info (same off-cell miss as both prior runs).
+- CLAIM DISCIPLINE: the load-bearing result is tier policy in drafts + both danger
+  cells held + zero regression. The 0.986 and row-56 flip are n=73/n=1 — plausible
+  mechanism (classifier reads richer draft content; prompt itself is invisible to
+  it post-O) but recorded as side effect, NOT as "wire-in improved classification."
+
+### BACKLOG (adds/updates)
+- Tier-1 under-surfacing residual on no-distance offsite shapes (pilot #1): agent
+  quotes when asked/distance known, but does not volunteer the full Brenna block
+  unprompted. Candidate next prompt variable; own cycle vs the new 0.986 baseline.
+- VERIFY 1315ebb scope: pilot output shows a pii_email_phone_scan voice check not
+  present in the pre-rewrite voice_checks.py read; either pilot-side or the step-1
+  commit exceeded spec. Diff 1315ebb + paste voice_checks __main__ output (still
+  outstanding from step 1). Cheap check, do at next session open.
+- EXAMPLE-3 parroting watch: pilot reads should flag verbatim EXAMPLE 3 pasted onto
+  shapes it doesn't fit.
+- Unchanged: grader 9-top row; holdout from Q2–Q4 export; git-history PII audit
+  (confirmed-positive, gates public flip); foundation→repo migration; 02 stale line;
+  agent_v3 prompt-load path anchor (deferred from path-anchor session); stale line-18
+  comment in agent_v3.py mentions prompt_v2 (cosmetic).
+  
