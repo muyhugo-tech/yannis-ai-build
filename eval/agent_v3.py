@@ -75,7 +75,7 @@ from voice_checks import run_voice_checks
 from tools.service_options import resolve_service_options
 
 # --- v2 system prompt, read verbatim. NOT edited this session. ---
-with open("prompt_v3.txt", "r", encoding="utf-8") as f:
+with open("prompt_v4.txt", "r", encoding="utf-8") as f:
     SYSTEM_PROMPT = f.read()
 
 # --- v2 held-out demo inquiry, preserved so the v2 voice/plated demo still
