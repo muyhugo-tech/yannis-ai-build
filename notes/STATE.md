@@ -1631,4 +1631,85 @@ tally 11 rows COLD n=8 RECALL n=3; tree clean.
 Baseline for any future prompt work: 0.973/run-1 with row-34-noise note; constraints
 unchanged: dq=0, qd={}, Tier-3 withhold, no past-15mi fee, no tier-list on unknown
 distance (NEW, this session's addition to the danger-cell family).
+## Session R — checker phrasing-sensitivity fix (one variable: voice_checks.py)
+
+### Goal 0 — all seven passed incl. out-of-session 5e40764 at HEAD
+label 168/166/2/0; loader 160/73; probe [B-FAIL]=0, 19 [B-OK]; log 5e40764 HEAD;
+tally 11 rows COLD n=8 RECALL n=3; tree clean; agent_v3 line 78 prompt_v4
+(line-18 comment still stale, still batched for next agent_v3 change).
+
+### DIAGNOSIS (reframed the entry prompt's model)
+The gap is NOT phrasing-shape ("would be" vs "is"). Attribution is purely
+keyword-in-window; _TIER1_KEYWORDS lacked the token "fee". "delivery would be
+$50" passed because "delivery" was in the 60-char window, not because of its
+verb. Smallest correct surface = one token, not new phrasing patterns.
+
+### THE VARIABLE — Option 1 collapsed to a single keyword
+fees? added to _TIER1_KEYWORDS. Explicitly EXCLUDED: charge/price/cost (each
+would flip a Tier-2 fail to pass — the forbidden false-negative direction).
+- Cases FIRST: 6 added (2 gap-encoding, 1 regression pin, 3 guards:
+  "charge $46/person" stays Tier-2 fail; "fee comes to $1,840 in total" stays
+  Tier-3 fail with 'fee' in-window, proving precedence protects the danger
+  cell; "$2,500 minimum" stays unattributed fail — patio-minimum withhold).
+- Step-1 run: 18 OK / 2 XX, exactly the gap cases. Step-2 run: 20/20 PASS.
+  No pre-existing fail flipped. Built in Claude sandbox against uploaded
+  copy, re-verified on repo bytes (20/20 on machine). CRLF warning benign
+  (LF-source file, autocrlf normalized; diff shows 2 clean hunks, +11/-0).
+- Commit <hash>: eval/voice_checks.py only, by filename.
+
+### Insurance grade run — 0.973, dq=0. ROW 56 FLIPPED WRONG (noise verdict)
+- Misses: [56] qualified->declined, [73] declined->needs_info. Row 34 flipped
+  correct (consistent with its noise designation).
+- Row 56 history: wrong <=O, right P, right Q-run-1, wrong R — the row-34
+  signature. NO RERUN taken (rerolling to confirm = choosing when to stop
+  sampling, the multiple-comparisons trap the row-34 rule exists to prevent).
+- Causality verified in bytes, not assumed: run_voice_checks fires only in
+  agent_v3.py's __main__ demo path (line 352), results printed, no branch on
+  passed, no regenerate, no decision feedback. grade_agent.py does not import
+  it. A checker edit CANNOT move classifications.
+- BASELINE LANGUAGE REVISED: 0.973 with rows 34/56 sampling-unstable, row 73
+  the sole stable miss. qd={} is NOT a per-run absolute a sampled classifier
+  can promise; dq=0 IS the absolute and has held in every run ever. At n=73,
+  identical 0.973 headlines with different miss composition => run-to-run
+  deltas finer than ~+/-0.014 are noise.
+- OPERATOR DECISION OPEN: qd downgraded from hard constraint to watch-item on
+  Claude's read; operator may restore it as a kill-trigger (revenue-cost
+  argument). Unresolved at close; next prompt session must resolve before
+  its keep/kill rules are pre-committed.
+- Zero retry lines: network clean, 5e40764 landed but UNEXERCISED in anger.
+
+### BACKLOG (adds/updates)
+- Path footgun EXTENDED: git pathspecs from inside eval\ double-stack the
+  prefix same as script paths (bit twice in R: findstr, then git add — add
+  failed fatal, nothing staged, no damage). Rule is now: ALL commands run
+  from repo root unless the tool itself requires eval\ (pilot_v0.py,
+  grade_agent.py only).
+- NEW: usefulness_tally why-text eats dollar figures (live-11 shows "\-3K",
+  "\/4hr" — escaping bug somewhere in the log_outcome pipeline). Cosmetic.
+- Project instructions stale line fired again (5th+ occurrence): still says
+  "unanswered delivery rule" — answered in P, extended in Q. Settings fix,
+  not a commit.
+- Unchanged: git-history PII audit (longest-standing gate, human-eyes, next
+  operator decision = scanner name-list source); FROM-PRICE corpus question;
+  pilot-3 radius framing; holdout Q2-Q4; foundation->repo migration + file-02
+  line; agent_v3 path anchor; line-18 comment (batch with next agent_v3
+  change); grader 9-top row; Section 4 loss hypotheses (highest-value next
+  batch); EXAMPLE-3 parroting watch.
+
+### NEXT SESSION — candidates (pick one, do not braid)
+- git-history PII audit (the gate that blocks the public flip; queued next
+  step is the scanner name-list-source operator decision)
+- foundation->repo migration (+ 02 line rides along; PII-scan before staging)
+- Section 4 dead-thread batch (not a code session)
+Baseline for any future prompt work: 0.973, rows 34/56 unstable, row 73
+stable miss. Constraints: dq=0 absolute; qd watched pending operator ruling
+(above); Tier-3 withhold; no past-15mi fee; no tier-list on unknown-distance
+offsite; no PII.
+- Shell footsgun family, full diagnosis after two failed attempts: (1) PS
+  double-quoted -m strings expand $25 to empty (e665067's original mangle);
+  (2) PS 5.1 single-quoted -m strings with EMBEDDED double quotes split at
+  the inner quotes and git reads fragments as pathspecs (amend attempt 1
+  errored harmlessly). RULE: any commit message containing $ or quotes goes
+  through a here-string + git commit -F msg.txt. Same family as the tally
+  why-text dollar losses.
   
