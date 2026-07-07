@@ -140,6 +140,7 @@ _TIER1_KEYWORDS = re.compile(
     r"|linen|napkin"                       # linen / napkin
     r"|cutlery|disposable"                 # cutlery / disposable
     r"|service staff|staff|server"         # service staff / server
+    r"|fees?"                              # generic add-on fee ("the fee is $25")
     r"|soft[\s-]?drinks?|beverages?|drinks?"  # beverage terms
     r"|na"                                 # NA (non-alcoholic)
     r")\b",
@@ -241,6 +242,16 @@ if __name__ == "__main__":
         ("Equipment rental is $150 and our NA package is $3 per guest.", "no_pricing_in_initial_response", True),
         ("Service staff are $200 per staff member.", "no_pricing_in_initial_response", True),
         ("We can seat up to 50 guests.", "no_pricing_in_initial_response", True),  # bare number, not money
+        # --- Session R: Tier-1 attribution widening ("fee") ---
+        # gap cases: currently FAIL, must PASS after the fix
+        ("The fee is $25.", "no_pricing_in_initial_response", True),
+        ("The setup fee is $150.", "no_pricing_in_initial_response", True),
+        # regression: already passes, pin it
+        ("Delivery runs $50 to Mira Mesa.", "no_pricing_in_initial_response", True),
+        # guards: widening must NOT flip these
+        ("We charge $46 per person.", "no_pricing_in_initial_response", False),
+        ("The fee comes to $1,840 in total.", "no_pricing_in_initial_response", False),
+        ("The garden patio has a $2,500 minimum.", "no_pricing_in_initial_response", False),
         # Tier-2: per-head/menu price, no Tier-1 attribution -> FAIL.
         ("The reception menu is $46 per person.", "no_pricing_in_initial_response", False),
         ("It runs 46 dollars per guest.", "no_pricing_in_initial_response", False),
