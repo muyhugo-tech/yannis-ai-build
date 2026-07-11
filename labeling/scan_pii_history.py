@@ -86,7 +86,7 @@ ORG_TOKENS = {
 }
 VENDOR_TOKENS = {
     "typeform", "toast", "truereview", "unifirst", "weddingpro", "grantify",
-    "epic", "events", "team", "wedding", "coordination",
+    "epic", "events", "team", "wedding", "coordination", "notifications",
 }
 MENU_ROLE_NOISE = {
     "neapolitan", "spartan", "bruschetta", "bruschettas", "dip", "trio",
@@ -152,6 +152,7 @@ ALLOW_PHRASES = {
 STAFF_EMAILS = {
     "ybgcatering@gmail.com",   # published business inbox
     "muyhuguso5@gmail.com",    # git author (operator's own)
+    "mailer-daemon@googlemail.com",  # google bounce daemon (vendor infra, not a person)
 }
 PLACEHOLDER_DOMAINS = ("example.com", "example.org", "example.net",
                        "acme.com", "x.com")
