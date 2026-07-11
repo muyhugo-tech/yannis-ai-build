@@ -26,7 +26,7 @@ labeling) is BLOCKED until the verification gates at the bottom pass.
   visible-failure property). probe_from_lines.py rewired to import the
   shared is_allowlisted (it had carried the same blind spot). Re-run across
   all surfaces: 113 -> 2 From-line flags, the 2 being one customer slot
-  ("{name-22}, Jonah") correctly redacting. tests/test_redact_allowlist.py,
+  ("{name-17}, Jonah") correctly redacting. tests/test_redact_allowlist.py,
   11 cases.
 - Verification gates 1–4, 6, 7: PASSED. Gate 5 (F5 probe) still pending F5.
 - Ingest left **3 model_failed** batch-3 threads (F1 working as designed —
