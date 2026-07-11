@@ -26,9 +26,13 @@ notes/STATE_session_J_block.md
 notes/yannis-ai-build-foundation.txt
 # PII-bearing remediation records: kept LOCAL as the cross-check surface for
 # the pending git-history PII audit. They embed real customer names
-# ({name-17} / {name-3} / {name-5}) and must never be committed.
-labeling/quarantine_{name-17}.py
+# and must never be committed.
+labeling/quarantine_c1.py
 labeling/check_sources.py
 labeling/delete_batch3.py
 labeling/probe_body_leaks.py
 labeling/verify_ingest_redaction.py
+# git-history PII audit report (scan_pii_history.py output). Hit terms are
+# redacted to {name-N} at write time, but the hit inventory itself maps the
+# repo's PII surface -- stays local, never committed.
+labeling/pii_history_report.txt
