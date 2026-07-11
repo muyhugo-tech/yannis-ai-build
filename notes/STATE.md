@@ -4,7 +4,7 @@ Update this at the END of every build session. It records what is TRUE on
 disk now, not what was decided in conversation. Next session: read this,
 attach the files it names, then start. Do not rediscover.
 
-Last updated: 2026-06-17 (end of Session E).
+Last updated: 2026-07-11 (end of Session S).
 
 ---
 
@@ -1655,7 +1655,7 @@ would flip a Tier-2 fail to pass — the forbidden false-negative direction).
   No pre-existing fail flipped. Built in Claude sandbox against uploaded
   copy, re-verified on repo bytes (20/20 on machine). CRLF warning benign
   (LF-source file, autocrlf normalized; diff shows 2 clean hunks, +11/-0).
-- Commit <hash>: eval/voice_checks.py only, by filename.
+- Commit 55c2884: eval/voice_checks.py only, by filename.
 
 ### Insurance grade run — 0.973, dq=0. ROW 56 FLIPPED WRONG (noise verdict)
 - Misses: [56] qualified->declined, [73] declined->needs_info. Row 34 flipped
@@ -1706,10 +1706,129 @@ stable miss. Constraints: dq=0 absolute; qd watched pending operator ruling
 (above); Tier-3 withhold; no past-15mi fee; no tier-list on unknown-distance
 offsite; no PII.
 - Shell footsgun family, full diagnosis after two failed attempts: (1) PS
-  double-quoted -m strings expand $25 to empty (e665067's original mangle);
+  double-quoted -m strings expand $25 to empty (e665067's original mangle; amended to 55c2884);
   (2) PS 5.1 single-quoted -m strings with EMBEDDED double quotes split at
   the inner quotes and git reads fragments as pathspecs (amend attempt 1
   errored harmlessly). RULE: any commit message containing $ or quotes goes
   through a here-string + git commit -F msg.txt. Same family as the tally
   why-text dollar losses.
-  
+  ## Session S — git-history PII audit: scanner + full hit inventory + remediation design
+
+### Goal 0 — 6/7 clean; e665067 residual HIT as predicted from bytes
+label 168/166/2/0; loader 160/73; probe [B-FAIL]=0, 19 [B-OK]; HEAD 2614a69;
+tally 11 rows COLD n=8; tree clean. findstr e665067 -> 1 hit line 1709
+(shell-footgun bullet cites the dead pre-amend hash) — fixed this session's
+STATE touch, alongside the R-block "Commit <hash>" placeholder (never filled
+at R close; resolved to 55c2884 from git log) and the stale file header
+(said Session E). All three are STATE-integrity defects, not code.
+
+### Deliverable 1 — scanner (Claude Code brief, full-bytes discipline held)
+labeling/scan_pii_history.py committed 77c245e. Read-only history walk:
+rev-list --all x ls-tree per revision x cat-file per unique blob — deleted
+paths covered by construction. Report gitignored BEFORE existence
+(check-ignore gate wired, exit 1 if trackable), every term redacted at
+write time to stable {kind-N} tokens.
+- DEVIATION ACCEPTED: brief premise wrong — the five gitignored scripts
+  carry names in COMMENTS, not list literals; pure AST extraction would
+  have zeroed and tripped the gate. Claude Code named it before building
+  and extended derivation: AST assignment strings + comment/docstring
+  prose mining + DB backups (From/To slots, greetings, signatures) +
+  archive scripts. Union across all sources, counts-only stdout.
+- ACCEPTANCE GATE DID ITS JOB: STATE.md confirmed-positive control wired
+  as exit-2 hard failure. Zero-hits-on-STATE = broken scanner, never a
+  clean history. Passed every run (1105 -> 1151 as new commits added
+  historical STATE revisions — scanner counting its own session, correct).
+
+### Deliverable 2 — two rejections on human-eyes pass, fixed (77c245e)
+Claude Code's proposed staging REJECTED against its own pasted bytes:
+(1) scanner FIVE_SCRIPTS constant embedded a customer surname via a
+gitignored script's FILENAME; (2) .gitignore carried the same filename
+plus a comment naming three customers. Root cause identical: a filename
+is PII and propagates into every file referencing it. Fix: script renamed
+to labeling/quarantine_c1.py, .gitignore line + comment scrubbed, scanner
+constant updated, re-run identical (same union/terms/hits), THEN staged.
+Lesson (new instance of trust-the-bytes): a deliverable's claim of "zero
+PII in this file" is checked against the file's bytes including every
+embedded PATH, not against the claim.
+
+### Deliverable 3 — inventory (final, post-allowlist-refinement)
+Two review items ruled vendor infra, not people: the redact-allowlist org
+slot token is the form vendor's notification display name; the email in
+export_threads' exclusion list is google's bounce daemon. Both added to
+scanner allowlists (commit after 77c245e). 136 hits reclassified false
+positive; export_threads.py exits the inventory entirely (never dirty).
+FINAL NUMBERS: 1697 hits / 33 of 44 commits / 7 paths / 10 unique terms.
+By path: STATE.md ~1151 (dominant surface — session narratives quoted
+real names to document PII lessons), probe_body_artifacts.py 224 (docstring
+narrates F5/F6 with real names), redact.py ~35 genuine (slot-format
+comments), tests/test_redact_allowlist.py comments, OPTION_C_WORKORDER.md,
+probe_from_lines.py, .gitignore (now history-only post-77c245e).
+IRONY, RECORDED: the leaks are overwhelmingly the PII tooling and its
+documentation quoting the names they caught. Every one rewordable to
+tokens; none needs the real string to do its job.
+
+### HEAD-live finding (reshapes remediation)
+findstr 2614a69 on the report: 70 hits live at audit-time HEAD across ALL
+8 then-paths — there was NO history-only bucket. Rewriting history while
+HEAD bytes are dirty fixes nothing. Post-77c245e: .gitignore hits are the
+first history-only entries; ~62 genuine hits remain HEAD-live across 6
+paths (46 of them STATE.md narratives).
+
+### REMEDIATION DESIGN (design only — execution is Session T)
+PHASE 1 — HEAD byte-fix session: reword the ~62 HEAD-live hits to
+{name-N} tokens / initials across the 6 paths (docstrings, comments,
+STATE narratives). One session, commits by filename, re-run scanner
+after: acceptance = zero non-allowlisted hits at NEW HEAD. STATE.md
+convention from this block forward: session narratives NEVER quote a
+real name — tokens only. Phase 1 gates Phase 2.
+PHASE 2 — history rewrite: git filter-repo --replace-text with a
+GITIGNORED replacements file (real-term -> token map; the map itself is
+PII, same discipline as the report). CHOSEN over fresh-repo cutover:
+the 44-commit history is a documented portfolio asset (repo conventions:
+meaningful commit history for senior-engineer review); cutover destroys
+the artifact the repo exists to demonstrate. Fresh-cutover stays the
+documented fallback if filter-repo misbehaves on Windows.
+BACKUP PROTOCOL (gate, non-negotiable): git clone --mirror to a path
+outside the repo, verified restorable (clone from the mirror, Goal 0
+passes on the restore) BEFORE filter-repo touches anything. Rewrite
+invalidates all commit hashes — every hash recorded in STATE becomes
+historical-reference-only; note this at the top of STATE in T.
+COVERAGE GAP TO CLOSE IN T BEFORE REWRITE: scanner walks blobs only.
+Commit messages, tag names, branch names unscanned. One-shot pass
+(scanner extension or manual git log --all review) required; risk low
+(commit style is technical), but low is not verified.
+PUBLIC FLIP CRITERIA: Phase 1 clean + Phase 2 executed + full re-scan
+zero non-allowlisted + commit-message pass clean + mirror backup
+retained. Then and only then.
+
+### BACKLOG (adds/updates)
+- NEW: Session T = remediation (Phase 1 byte-fix, then Phase 2 rewrite;
+  can split into two sessions if Phase 1 runs long — Phase 1 alone is
+  committable value).
+- NEW: intake plumbing (gmail -> pilot, kills copy-paste friction) —
+  named as a drift risk twice this session, held out of S. Candidate
+  AFTER T; two weeks of manual daily pilot use first would prove or kill
+  friction-as-bottleneck (B-before-C logic). Manual loop grows the cold
+  tally toward the conversion number regardless.
+- LinkedIn Projects entry drafted (two variants, no repo link, no
+  metrics, privacy-audit status stated plainly) — operator may post;
+  the build-announcement POST still gates on a conversion number.
+- Project instructions stale line FIXED (settings swap done mid-session;
+  5+ sessions on the backlog, cleared).
+- qd-constraint ruling still OPEN — unchanged: next PROMPT session opens
+  with it before pre-committing keep/kill rules.
+- Unchanged: foundation->repo migration (+ file-02 line) — T candidate
+  rider; FROM-PRICE corpus question; pilot-3 radius framing; holdout
+  Q2-Q4; agent_v3 path anchor + line-18 comment; grader 9-top row;
+  Section 4 loss hypotheses (highest-value next batch); EXAMPLE-3
+  parroting watch; 5e40764 retry still unexercised; tally why-text
+  dollar-figure escaping.
+
+### NEXT SESSION — candidates (pick one, do not braid)
+- Session T Phase 1: HEAD byte-fix (~62 hits, 6 paths, reword to tokens)
+  — smallest step on the public-flip critical path.
+- Section 4 dead-thread batch (not a code session).
+- qd ruling (operator decision, ~15 min, unblocks future prompt work).
+Baseline for prompt work unchanged: 0.973, rows 34/56 unstable, row 73
+stable miss; dq=0 absolute; Tier-3 withhold; no past-15mi fee; no
+tier-list on unknown-distance offsite; no PII.
