@@ -139,7 +139,7 @@ FUNCTION_WORDS = {
 }
 # Documentation placeholders: literal format-example words mined from term
 # sources ('Lastname, First' in comments/docstrings). Not people.
-DOC_PLACEHOLDERS = {"lastname"}
+DOC_PLACEHOLDERS = {"lastname", "firstname"}
 KNOWN_NON_PII = (DOC_PLACEHOLDERS | STAFF_FIRST | STAFF_SURNAMES | ORG_TOKENS | VENDOR_TOKENS
                  | MENU_ROLE_NOISE | STOPWORDS | FUNCTION_WORDS)
 
