@@ -221,7 +221,7 @@ eyeball + the commit, never scanned stored bytes.
 missed/failed:
 - 18e15f532bcec520 ({name-17}) — signature "{name-8}" + greeting "Hi Jonah".
 - 18da9fc12bae4de0 ({name-3} / {name-4} / {name-5}) — already model_failed.
-Both QUARANTINED (set redaction_status=model_failed, quarantine_{name-17}.py),
+Both QUARANTINED (set redaction_status=model_failed, quarantine_c1.py),
 un-labelable, deferred to the redaction-fix session.
 F5 (body-artifact probe) IS NO LONGER DEFERRABLE. The manual eyeball failed —
 read past {name-17} in a signature block. F5 must be built before any further
@@ -311,8 +311,7 @@ here, not committed). Backup: labels.db.bak-reredact-19e5a9ca-*.
 3. 19e5a9ca edge_case_flag=0 puts a VENDOR PITCH in the clean-inbound set (the 73).
    Routes correctly but arguably isn't a "cold customer inbound." Possible edge_case_flag
    mislabel (would drop it from 73, a count change). Labeling-convention call, deferred.
-4. [D] file surface: ~59 threads*/ .md files contain real customer names ({name}, {name},
-   {name}, {name}, {name}, {name}, {name}, ...).
+4. [D] file surface: ~59 threads*/ .md files contain real customer names (7 distinct; list held in labeling/audit_names_local.txt, gitignored).
    CONTAINED today: git check-ignore confirms threads*/ ignored (.gitignore:14); git log
    --all over threads*/*.md returned empty (never committed, re-verifies the Session-C
    3e157e0 claim directly). Containment rests entirely on the ignore rule holding. This
@@ -524,7 +523,7 @@ satisfied (we are past it); the PII/ordering constraint is the live one.
 - 2 quarantined model_failed rows (18e15f53 {name-17}, 18da9fc1 {name-3}/{name-5}) — re-redact or formal defer.
 - 78 stale source_path rows — re-point + re-redact, or accept as cosmetic. Not customer PII.
 - 19e5a9ca edge_case_flag=0 clean-inbound convention call (would drop 73->72).
-- Untracked diagnostics pile incl. name-bearing scripts (quarantine_{name-17}.py, check_pihas.py,
+- Untracked diagnostics pile incl. name-bearing scripts (quarantine_c1.py, check_pihas.py,
   reredact_19e5a9ca.py) — disposition owed before any public flip.
 - Public-flip FULL git-history PII audit (every blob) — non-negotiable, its own session.
 
@@ -739,7 +738,7 @@ delivery mechanism, which v0 is not.
 DIAGNOSTICS PILE IS BIGGER THAN PREVIOUSLY RECORDED: git status --short
 this session showed ~30 untracked scripts across repo root and labeling,
 NOT the ~5 STATE previously listed. Includes name/PII-bearing or PII-probing
-scripts (check_pihas.py, quarantine_{name-17}.py, reredact_19e5a9ca.py,
+scripts (check_pihas.py, quarantine_c1.py, reredact_19e5a9ca.py,
 audit_pii.py, probe_body_leaks.py, verify_ingest_redaction.py) and throwaways
 (_peek.py, _diag_service_tool.py — safe to delete, did their job). Plus litter:
 a stray file literally named --help in eval\ (malformed-command residue),
@@ -951,7 +950,7 @@ SPEC / FOUNDATION CORRECTIONS (fix the DOC, not the agent):
 - DIAGNOSTICS PILE IS BIGGER THAN PREVIOUSLY RECORDED: `git status --short`
   this session showed ~30 untracked scripts across repo root and labeling\,
   NOT the ~5 STATE previously listed. Includes name/PII-bearing or PII-probing
-  scripts (check_pihas.py, quarantine_{name-17}.py, reredact_19e5a9ca.py,
+  scripts (check_pihas.py, quarantine_c1.py, reredact_19e5a9ca.py,
   audit_pii.py, probe_body_leaks.py, verify_ingest_redaction.py) and throwaways
   (_peek.py, _diag_service_tool.py — safe to delete, did their job). Plus litter:
   a stray file literally named `--help` in eval\ (malformed-command residue),
@@ -990,7 +989,7 @@ COMMIT FOR THIS SESSION'S WORK: <fill after staging>
   STAGE BY FILENAME: notes/usefulness_tally.csv ONLY this session (the 4 new
   rows are the only artifact). Run `git status --short` BEFORE committing and
   confirm the ~30-file untracked diagnostics pile (name-bearing scripts incl.
-  check_pihas.py, quarantine_{name-17}.py, audit_pii.py) is NOT swept in.
+  check_pihas.py, quarantine_c1.py, audit_pii.py) is NOT swept in.
   git add . remains forbidden. No code/prompt/foundation file changed — nothing
   else to stage.
   STALE-MESSAGE NOTE (added Session L): commit 99d6373's message says "+3 cold"
@@ -1832,3 +1831,92 @@ retained. Then and only then.
 Baseline for prompt work unchanged: 0.973, rows 34/56 unstable, row 73
 stable miss; dq=0 absolute; Tier-3 withhold; no past-15mi fee; no
 tier-list on unknown-distance offsite; no PII.
+
+## Session T Phase 1 — HEAD byte-fix: zero customer names in tracked bytes at HEAD
+
+### Goal 0 — clean, brief matched exactly
+label 168/166/2/0; loader 160/73 PASS; HEAD 6c84b97; tree clean; scanner
+1821 / 35 of 46 / 7 paths / 10 terms, gate PASS 1243; findstr 6c84b97 ->
+62 hits / 6 paths, .gitignore absent (history-only as designed).
+
+### Finding 1 — two placeholder false-positive terms (8 of 62 hits, 3 paths)
+Byte-inspection of flagged lines showed "Lastname" and "Firstname" —
+literal documentation-placeholder words in format-example comments — were
+mined as name terms. Fixed via DOC_PLACEHOLDERS set prepended to
+KNOWN_NON_PII: 99bdea9 (lastname), 904bb65 (firstname; also fixed a
+one-string set-literal typo from the first attempt that silently matched
+nothing — caught because the re-run regressed to baseline and was
+diagnosed from bytes). probe_from_lines.py and redact.py exit the
+inventory ENTIRELY — never carried a real name in any commit; they leave
+Phase 2 scope too. Corrected genuine inventory at 6c84b97: 56 hits, 4 paths.
+LESSON (cost two detours): verify the term against file bytes BEFORE
+designing the edit. Report snippets identify lines; only bytes identify terms.
+
+### Finding 2 — token numbering is run-stable, NOT cross-run-stable
+Any term-list change renumbers report tokens. File tokens are FROZEN to
+the committed numbering and the report is not chased: {name-17} = the F6
+customer surname, {name-8} = that customer's full-name form, {name-3}/
+{name-4}/{name-5} = the 18da9fc1 trio (first/first/full), {name-25} = the
+19e5a9ca vendor first name. Report-vs-file token mismatch is cosmetic; the
+acceptance gate greps real terms, not tokens.
+
+### Finding 3 — scanner term-coverage gap (gate was necessary, not sufficient)
+Scanner terms come only from gitignored scripts/DBs. Seven customer names
+sat at HEAD in STATE.md's [D]-surface inventory that no term source
+contained — invisible to every prior scan. Fixed twice over: (a) the name
+list in STATE.md replaced with a count + pointer; (b) audit_names_local.txt
+(already a wired [names-file] source, was empty) populated with the 7
+names (one per line; parser silently yields 0 on comma-separated input).
+The populated source immediately caught a 5th dirty path no scan had ever
+seen: audit_pii.py:20 carried a customer full name in a comment (365ea6d).
+Independent full-file name sweep of STATE.md found nothing beyond the 6
+flagged terms + these 7.
+
+### Finding 4 — one boundary-blocked hit the scanner misses by design
+STATE.md old line 268 held the vendor name flush against a literal \n
+escape (no word boundary); the scanner's word-boundary matching never
+flagged it in any run. Fixed in this commit's byte pass. Phase 2 note:
+scanner matching should be re-checked for boundary-adjacent hits before
+the post-rewrite final scan is trusted.
+
+### Byte-fix commits (by filename)
+- 99bdea9 scanner: lastname placeholder dropped
+- b6a7425 OPTION_C_WORKORDER.md + test_redact_allowlist.py
+- 904bb65 scanner: firstname placeholder + set-literal typo fix
+- 6489c32 probe_body_artifacts.py (4 docstring/comment lines; probe
+  re-run [B-FAIL]=0 after edit)
+- ffa3a36 token renumber to frozen numbering (OPTION_C + tests)
+- 365ea6d audit_pii.py comment (names-file coverage catch)
+- this commit: STATE.md ~48 hits tokenized via deterministic script
+  (manual find-replace misfired and was reverted; replacement done
+  programmatically from the pristine HEAD copy, counts verified:
+  5 filename / 2 full / 8 trio-full / 18 surname / 8+1 firsts / 5 vendor /
+  1 [D]-list), quarantine filename refs -> quarantine_c1.py, [D] list ->
+  count + pointer, this close block.
+
+### ACCEPTANCE (record result at close)
+Scanner re-run post-commit with populated names file (13 terms), findstr
+new HEAD -> required ZERO non-allowlisted hits. Result: <fill after run>.
+Gate PASS required; gate count grows with each new STATE.md revision in
+history (correct, per-commit counting).
+
+### CONVENTION (standing, from S, now enforced)
+STATE narratives never quote a real customer name — tokens only. This
+block complies; every block after it must.
+
+### NEXT — Phase 2 is the sole remaining pre-flip work
+filter-repo --replace-text (replacements file gitignored; now must cover
+all 13 terms incl. the names-file 7), commit-message/tag/branch coverage
+pass, mirror backup verified-restorable BEFORE rewrite, boundary-adjacency
+scanner check (Finding 4), full re-scan, then public flip. Hash
+invalidation warning: rewrite makes every hash in this file
+historical-reference-only.
+
+### Backlog unchanged
+qd ruling (operator, before next prompt session); Section 4 dead threads;
+intake plumbing (after 2 weeks manual pilot); foundation migration;
+holdout Q2-Q4; agent_v3 path anchor + line-18 comment; grader 9-top row;
+EXAMPLE-3 watch; tally dollar-escaping; 5e40764 retry unexercised.
+Baseline for prompt work: 0.973, rows 34/56 unstable, row 73 stable miss;
+dq=0 absolute; Tier-3 withhold; no past-15mi fee; no tier-list on
+unknown-distance offsite; no PII.
