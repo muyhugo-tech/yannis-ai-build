@@ -17,7 +17,7 @@ WHAT IT LOOKS FOR
      (its header lines still contain the leaked display names). The names
      are never hardcoded here; hardcoding them would create the exact
      problem this script audits for. Matching is case-insensitive
-     substring on the full display string (e.g. '{name} Faries'), which
+     substring on the full display string (e.g. '{name}'), which
      keeps false positives near zero. Single-word display names (e.g.
      'jamie') are matched as whole words to avoid noise.
   2. RAW EMAIL ADDRESSES -- anything matching the email pattern that is
