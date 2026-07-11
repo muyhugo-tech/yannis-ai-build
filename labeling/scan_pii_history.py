@@ -137,7 +137,10 @@ FUNCTION_WORDS = {
     "monday", "tuesday", "wednesday", "thursday", "friday", "saturday",
     "sunday",
 }
-KNOWN_NON_PII = (STAFF_FIRST | STAFF_SURNAMES | ORG_TOKENS | VENDOR_TOKENS
+# Documentation placeholders: literal format-example words mined from term
+# sources ('Lastname, First' in comments/docstrings). Not people.
+DOC_PLACEHOLDERS = {"lastname"}
+KNOWN_NON_PII = (DOC_PLACEHOLDERS | STAFF_FIRST | STAFF_SURNAMES | ORG_TOKENS | VENDOR_TOKENS
                  | MENU_ROLE_NOISE | STOPWORDS | FUNCTION_WORDS)
 
 # Multi-word staff/org/vendor phrases: a whole slot/term equal to one of
