@@ -42,7 +42,7 @@ def test_staff_full_names_survive():
 
 
 def test_comma_reversed_staff_full_name_survives():
-    # Quoted "Lastname, First" format (the probe found "{name-17}, Jonah").
+    # Quoted "Lastname, First" format (the probe found "{name-22}, Jonah").
     # Phrase matching is order-independent so the staff full name still
     # covers when reversed.
     assert is_allowlisted("Pihas, Denise") is True
