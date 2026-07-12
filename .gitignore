@@ -36,3 +36,5 @@ labeling/verify_ingest_redaction.py
 # redacted to {name-N} at write time, but the hit inventory itself maps the
 # repo's PII surface -- stays local, never committed.
 labeling/pii_history_report.txt
+
+labeling/pii_aux_report.txt
