@@ -1,10 +1,16 @@
+> **HASH INVALIDATION (Session T2, 2026-07-12).** The git history was
+> rewritten with git filter-repo. EVERY commit hash recorded below this
+> line is historical-reference-only and no longer resolves in this
+> repository. Post-rewrite hashes begin at e3398c6. The pre-rewrite
+> history survives only in the frozen local mirror (see T2 close block).
+
 # STATE — Yanni's catering qualifier (code state of record)
 
 Update this at the END of every build session. It records what is TRUE on
 disk now, not what was decided in conversation. Next session: read this,
 attach the files it names, then start. Do not rediscover.
 
-Last updated: 2026-07-11 (end of Session S).
+Last updated: 2026-07-12 (end of Session T2 -- history rewritten, repo public).
 
 ---
 
@@ -1896,7 +1902,7 @@ the post-rewrite final scan is trusted.
 
 ### ACCEPTANCE (record result at close)
 Scanner re-run post-commit with populated names file (13 terms), findstr
-new HEAD -> required ZERO non-allowlisted hits. Result: <fill after run>.
+new HEAD -> required ZERO non-allowlisted hits. Result: zero non-allowlisted hits at then-HEAD 660a0b9 (historical hash). Verified 2026-07-11 at T2 Goal 0: scanner re-run 2073 hits all history-only, findstr on the HEAD hash returned 0 lines. Backfilled at T2 close; the placeholder itself was a repeat of the unfilled-acceptance defect class.
 Gate PASS required; gate count grows with each new STATE.md revision in
 history (correct, per-commit counting).
 
@@ -1920,3 +1926,103 @@ EXAMPLE-3 watch; tally dollar-escaping; 5e40764 retry unexercised.
 Baseline for prompt work: 0.973, rows 34/56 unstable, row 73 stable miss;
 dq=0 absolute; Tier-3 withhold; no past-15mi fee; no tier-list on
 unknown-distance offsite; no PII.
+
+
+## Session T2 close -- history rewrite executed, repo PUBLIC
+
+Flip timestamp: 2026-07-12 08:59 local (operator flipped visibility after push verification).
+
+### What happened, in order
+- Goal 0 matched the brief exactly. T1 acceptance backfilled (see above);
+  stale header fixed.
+- Step 1: mirror at C:/dev/_mirrors/yannis-ai-build-pre-T2.git,
+  restore-verified GIT-ONLY (ruling: the DB never lived in git; verifying
+  it in a restore proves the copy, not the mirror). Scratch restore
+  deleted after verification. FINDING: ~85 dangling blobs + 2 dangling
+  commits -- an unscanned surface (rev-list --all never sees them),
+  though unreachable objects cannot be pushed, so flip-risk was nil.
+- Step 2: scan_pii_aux.py shipped (committed). Pass A (commit msgs, refs,
+  tags) found 2 name hits in one commit message -- the F6 close-block
+  narrative quoted the customer slot; "commit style is technical" was
+  wrong once. Pass B (boundary-agnostic substring over ALL blobs incl.
+  danglers) found Finding-4 LIVE: 11 reachable hits of the vendor name
+  flush against a literal \n at STATE.md old line 268, invisible to the
+  guarded scanner in every prior run. Noise floor established: one short
+  derived term ({name-44}) substring-matches inside common words
+  (total/stale/accidentally), ~1258 innocent hits; EXCLUDED from
+  replacement by ruling. 14 name terms + 2 phone numbers existed ONLY in
+  dangling blobs -- different dirt than reachable, destroyed at rewrite gc.
+- Step 3: replacements file built (13 rules, gitignored-first).
+  verify_replacements.py shipped as the gate: derived-set membership,
+  reachable-history hit count, full-before-single ordering, per rule.
+  The gate caught one dead rule ({name-8} typed first-last; history
+  carries the Outlook "Last, First" form) before it could ride in as a
+  silent no-op.
+- Step 4 attempt 1: POISONED. The replacements template carried '#'
+  comment lines; filter-repo's format has NO comment syntax -- every line
+  without '==>' becomes a replace-with-***REMOVED*** rule. Every '#' in
+  every tracked file in history was destroyed. Detected immediately
+  (acceptance scripts refused to parse), mirror-restored to c65431d in
+  ~4 minutes, zero data loss. The recovery design carried the session.
+- Step 4 attempt 2: file stripped to 13 rule-lines-only (BOM-free .NET
+  write), re-verified ALL PASS, rewrite clean. 55 commits in, 54 out:
+  the T1 probe_body_artifacts tokenize commit became empty (its parent
+  received the same replacements) and was pruned -- safe by construction,
+  a pruned-empty commit's tree equals its parent's. filter-repo also
+  rewrote abbreviated hashes quoted inside commit MESSAGES to their
+  post-rewrite values (messages only; file contents keep stale hashes,
+  hence the note at top).
+- Step 5 acceptance, all green: main scanner 48 terms derived, 0 hits
+  across 54 commits, exit-2 = INVERTED CONTROL BY DESIGN (pre-answered
+  ruling: exit 2 + nonzero derived terms + 0 hits = PASS; the positive
+  control was legitimately erased). Aux --post-rewrite: reachable
+  B-GUARD 0, A-TERM 0, {name-38} flush-form 0, residue = {name-44}
+  noise floor only. fsck: ZERO dangling objects. label 168/166/2/0,
+  loader PASS 160/73 (DB untouched, as it must be).
+- Step 6 flip: msg.txt gitignore gap closed (was in the checklist, had
+  no rule). FINDING: no README existed -- the checklist item presumed a
+  file that was never written. Minimal honest README drafted and
+  committed (no metrics quoted by design; the honest n>100 run has not
+  happened). notes/ ruled PUBLIC deliberately -- the process is part of
+  what the repo demonstrates. FINDING: no GitHub remote had ever been
+  created; "REMOTE IS PRIVATE" described an intention, not a repo. The
+  dirty history never left this machine. Repo created fresh, clean
+  history pushed (284 objects), flipped public.
+
+### Standing rules added/changed
+- THE MIRROR IS FROZEN FOREVER. It is the sole copy of pre-rewrite
+  history; a remote update would clobber it with rewritten refs. Never
+  update it. Custody = labels.db discipline.
+- Replacements files contain RULE LINES ONLY. The filter-repo format has
+  no comments; any non-rule line is a live replace-with-***REMOVED***
+  rule. verify_replacements.py must be extended to fail on non-rule
+  lines before it is ever reused.
+- Any commit made after a mirror gate re-runs the mirror update BEFORE
+  the destructive step (obeyed twice this session) -- now moot for this
+  mirror (frozen), binding for any future backup gate.
+- Code blocks in session chats contain commands only, zero prose (both
+  directions of the paste-accident happened this session).
+- PROCESS RULE reaffirmed the hard way: multi-line file changes are
+  produced by script, never by manual find-replace. The replacements
+  fill was directed manually in violation and cost four confused
+  round-trips; the verifier gate is what saved it.
+
+### Post-rewrite reference hashes (live)
+e3398c6 rewrite base (gitignore replacements path, rewritten)
+d8fa846 verify_replacements.py
+5e90526 msg.txt gitignore
+b37660f README
+(close-block commit hash: the commit containing this block)
+
+### Backlog (unchanged unless noted)
+qd ruling (operator, before next prompt session); Section 4 dead-thread
+batch; intake plumbing (after 2 weeks manual pilot); foundation->repo
+migration + file-02 stale line; holdout Q2-Q4; agent_v3 path anchor +
+line-18 comment; grader 9-top row; EXAMPLE-3 watch; tally
+dollar-escaping; retry commit unexercised (hash now historical); README
+quality pass is its own later session ("not embarrassing" bar was the
+only bar applied today); eval_loader assert refresh after batch-3
+labeling settles.
+Baseline for prompt work unchanged: 0.973, rows 34/56 unstable, row 73
+stable miss; dq=0 absolute; Tier-3 withhold; no past-15mi fee; no
+tier-list on unknown-distance offsite; no PII.
