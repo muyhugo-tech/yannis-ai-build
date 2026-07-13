@@ -2026,3 +2026,45 @@ labeling settles.
 Baseline for prompt work unchanged: 0.973, rows 34/56 unstable, row 73
 stable miss; dq=0 absolute; Tier-3 withhold; no past-15mi fee; no
 tier-list on unknown-distance offsite; no PII.
+
+## Session CRM-v0 close — 2026-07-12
+### What happened
+- Goal 0 PASS at 458e7f9; .env gitignore-verified before key added.
+- Smoke test vs live CRM: 201/409/201/401 all exact per handoff. First
+  live posts the agent surface ever received. Synthetic event
+  7e413ef6-ec40-4cb9-bd31-4aa978d8efb0 / draft
+  2fb7e9c5-5c0b-4003-bd3a-a1abfd316b40, cleaned up CRM-side at close.
+- curl.exe cannot TLS to Vercel from this machine (exit 35);
+  Invoke-WebRequest and Python urllib fine. curl not used by any
+  tracked code; noted only in case Python ever shows TLS trouble.
+- c440523: eval/crm_push.py + eval/test_crm_push.py (10 synthetic
+  contract tests, pytest green, no network in tests).
+- d988bd2: pilot --push hook, stdin-only (corpus rows are historical,
+  not live leads — argparse-enforced), CON-device prompts (stdin is
+  EOF after --stdin), empty-answer veto, declined/human_review skip.
+- Live run attempted on a real inquiry: decision needs_info, draft
+  passed all hard checks, danger cells held (no fee on unknown
+  distance, Tier-1 quoted, Tier-3 withheld). Push aborted at prompt
+  (operator reflex Ctrl+Z — veto worked as designed), then correctly
+  NOT retried: inquiry was Typeform-sourced.
+### FINDING (session's main output)
+Typeform leads auto-create CRM rows via webhook (source=typeform) and
+have NO gmail_thread_url. push_lead on one would DUPLICATE the lead
+with no dedupe key. v0 push path is direct-email-only by construction.
+Current live volume is mostly Typeform. What Typeform leads need is
+draft-attach-only to the EXISTING event id — endpoint exists, pilot
+has no path to it. This reorders the backlog.
+### Shadow week clock: NOT STARTED
+No direct-email inquiry live in the inbox today. Clock starts on the
+first real email inquiry pushed end-to-end. Recorded honestly rather
+than forcing a stale thread through.
+### Observation for tally
+needs_info decision produced a draft that asks for nothing (no date/
+location question). Decision-draft mismatch, watch item.
+### Backlog (reordered)
+1. draft-attach-only path for Typeform leads (operator supplies
+   event_id from CRM; push_draft already supports it) — likely v0.1,
+   ahead of gmail-pull v1 given live volume mix.
+2. gmail-pull intake v1 (shadow week = friction evidence).
+3. qd ruling (operator, before next prompt session); Section 4 dead
+   threads; foundation migration; remainder per T2 block unchanged.
