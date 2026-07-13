@@ -2068,3 +2068,14 @@ location question). Decision-draft mismatch, watch item.
 2. gmail-pull intake v1 (shadow week = friction evidence).
 3. qd ruling (operator, before next prompt session); Section 4 dead
    threads; foundation migration; remainder per T2 block unchanged.
+
+### Amendment (same sitting)
+- PROCESS ERROR this session: push executed BEFORE the scanner re-run.
+  Scans came back clean so nothing escaped, but the ordering violated
+  the last-wall principle. BINDING RULE: scanners run before git push,
+  every session, no exceptions.
+- Main scanner inverted-control verdict on clean history confirmed
+  expected per T2 ruling (not broken, not to be fixed).
+- Aux triage: name-44 B-SUB 1521 reachable hits = benign substring
+  (eyeballed, hits inside ordinary tokens, no standalone occurrence).
+- Synthetic CRM row (7e413ef6) dismissed, Lost, archived CRM-side.
