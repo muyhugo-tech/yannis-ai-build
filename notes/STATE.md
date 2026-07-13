@@ -2155,3 +2155,31 @@ Everything else unchanged from the v0.1 brief.
 
 Next session gates: qd ruling before any prompt session; shadow week
 accrues rows via --attach runs, no session needed per run.
+
+
+## Session CRM-v0.1 amendment (same sitting) — qd RULING RESOLVED
+
+Operator ruling, 2026-07-13. The qd (qualified->declined) constraint,
+aging since Session R, is resolved as a REVIEW-REGIME-CONDITIONAL rule:
+
+- dq (declined->qualified): hard kill, ALWAYS, both regimes. Unchanged.
+- qd WHILE every declined row receives individual human review: WATCH-
+  ITEM. An occurrence is investigated and logged, not an auto-kill.
+  Rationale: the pilot withholds drafts on declined; a wrong declined
+  reaches the operator's eyes, costs nothing if reviewed.
+- qd ONCE ANY declined row can reach disposition without review: HARD
+  KILL, first occurrence, no grace period. The trigger flips on the
+  PROCESS change (review removed), not on agent behavior — activated
+  preemptively, because unreviewed qd errors are invisible by
+  definition (a silently turned-away real customer).
+
+Named cost of the conditional rule (recorded so future-us holds it):
+it has a moving part. The regime boundary must be policed honestly —
+"am I still reviewing every declined row?" If that boundary ever gets
+fudged, the rule degrades to worse-than-flat-hard-kill. If review
+discipline erodes, the fallback ruling is flat hard-kill.
+
+Effect: the qd gate on prompt sessions is LIFTED. Current regime is
+full review (shadow week), so qd = watch-item today. The needs_info
+decision-draft evidence pile remains relevant to future qd triage but
+no longer blocks anything.
