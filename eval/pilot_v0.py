@@ -296,9 +296,60 @@ def run_one_from_db(client: Anthropic, rows_by_id: dict[str, InboundRow],
     render(inquiry_id, row.inquiry_text, output)
 
 
-def run_one_from_text(client: Anthropic, text: str) -> None:
+def run_one_from_text(client: Anthropic, text: str, push: bool = False) -> None:
     output = qualify(client, text)
     render(None, text, output)
+    if push:
+        _push_to_crm(text, output)
+
+
+
+def _prompt_console(label: str) -> str:
+    """Prompt on the console device. --stdin runs exhaust sys.stdin, so
+    input() would EOFError; read from CON (Windows console) instead."""
+    print(label, end="", flush=True)
+    try:
+        with open("CON", "r", encoding="utf-8") as con:
+            return con.readline().strip()
+    except OSError:
+        try:
+            return input().strip()
+        except EOFError:
+            return ""
+
+
+def _push_to_crm(inquiry_text: str, output) -> None:
+    """Opt-in push of this run into the CRM. Operator supplies the two
+    fields the model must not extract (deterministic source: Gmail).
+    Empty answer at either prompt aborts; the run is unaffected."""
+    if output.status.value in ("declined", "human_review"):
+        print("PUSH skipped: draft withheld for this status; no CRM row by design.")
+        print()
+        return
+    import crm_push
+    print("PUSH: copy both fields from Gmail. Empty answer aborts.")
+    name = _prompt_console("  contact_name: ")
+    if not name:
+        print("PUSH aborted: no contact_name.")
+        print()
+        return
+    url = _prompt_console("  gmail_thread_url: ")
+    if not url:
+        print("PUSH aborted: no gmail_thread_url.")
+        print()
+        return
+    if not url.startswith("https://mail.google.com/"):
+        print("PUSH aborted: thread URL must start with https://mail.google.com/")
+        print()
+        return
+    event_id = crm_push.push_lead({
+        "contact_name": name,
+        "gmail_thread_url": url,
+        "message": inquiry_text.strip(),
+    })
+    draft_id = crm_push.push_draft(event_id, output.draft_response.strip())
+    print(f"PUSHED: event {event_id}  draft {draft_id}")
+    print()
 
 
 def main() -> None:
@@ -310,7 +361,11 @@ def main() -> None:
     ap.add_argument("--list", action="store_true",
                     help="list available clean-inbound IDs and exit")
     ap.add_argument("--db", default=DEFAULT_DB, help="path to labels.db")
+    ap.add_argument("--push", action="store_true",
+                    help="after the draft, offer to push lead+draft to the CRM (stdin runs only)")
     args = ap.parse_args()
+    if args.push and not args.stdin:
+        ap.error("--push works only with --stdin (corpus rows are historical, not live leads)")
 
     rows = load_gradeable_inbounds(args.db)
     rows_by_id = {r.inquiry_id: r for r in rows}
@@ -329,7 +384,7 @@ def main() -> None:
         if not text.strip():
             print("stdin was empty — nothing to run.")
             return
-        run_one_from_text(client, text)
+        run_one_from_text(client, text, push=args.push)
         return
 
     if not args.id:
