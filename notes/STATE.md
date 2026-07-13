@@ -2079,3 +2079,79 @@ location question). Decision-draft mismatch, watch item.
 - Aux triage: name-44 B-SUB 1521 reachable hits = benign substring
   (eyeballed, hits inside ordinary tokens, no standalone occurrence).
 - Synthetic CRM row (7e413ef6) dismissed, Lost, archived CRM-side.
+
+
+## Session CRM-v0.1 close — --attach shipped, shadow clock STARTED
+
+Commits this session (by filename, in order):
+- 39c3000 pilot: --attach EVENT_ID for Typeform leads -- push_draft only,
+  argparse-guarded (stdin-only, excl --push, UUID-shape), single console
+  confirm. eval/pilot_v0.py ONLY (+34/-2). crm_push.py untouched, 10
+  tests still green, zero PII by construction (diff eyeballed).
+- tally commit: notes/usefulness_tally.csv ONLY, first shadow-attach row.
+- this STATE close.
+
+SHADOW WEEK CLOCK: STARTED 2026-07-13. EXPLICIT AMENDMENT to the CRM-v0
+close-block line ("clock starts on the first direct-email push"): per
+pre-session operator ruling 2, the clock's purpose is agent-draft-vs-
+operator-draft evidence and a Typeform draft-attach serves it
+identically. The clock started on the first REAL Typeform draft-attach:
+event 0e1bb5f1-9595-4b46-b605-c441099ac205, draft
+6eecd0f4-6bcd-46e7-9242-92079f0c973f, attached, verified in CRM (Drafts
+card + shadow chip + Copy text all pass), operator edited and sent the
+real Gmail reply same sitting.
+
+Smoke (endpoint-shape, pre-variable, all green):
+- mint: synthetic event 07670eb6-277e-48bb-a215-94930a91c637
+  (contact "Test Synthetic v0.1", SYNTHETIC-SMOKE-CRMV01 thread URL)
+- attach 201-path: draft f1563a14-4b02-4212-8101-57ecf241c4ac
+- bogus valid-shape UUID: loud stderr HTTP 404, exit=1. Loud-failure
+  contract confirmed to live INSIDE crm_push.push_draft — the pilot's
+  --attach path needs no 404 handling of its own; a fat-fingered id
+  kills the run before any ATTACHED line.
+- synthetic event CLEANED UP CRM-side this session (v0 recipe), both
+  synthetic drafts went with it.
+
+Guard proof (argparse, no API calls): --attach without --stdin errors;
+--attach with --push errors (mutual exclusion as explicit ap.error
+checks, NOT a restructure into a group — minimal diff, one variable);
+--attach with garbage id errors on UUID-shape re.fullmatch.
+
+Tally ruling (operator, this session): log_outcome constrains source to
+cold|recall; shadow rows are logged as COLD (they meet the helper's own
+definition — genuinely never-seen, judged in real time) with tag
+shadow-attach prepended for separability on read. NO helper change
+(second variable, refused). Read-and-decide session filters on the tag.
+
+First shadow row: Salvageable. Danger cells HELD on a live 50-guest
+offsite Typeform lead: no delivery fee asserted without address, buffet
+only at 50 (no plated), Tier-1 quoted freely, no total (Tier-3 held).
+NEW GAP (evidence, not a fix): empty Typeform contact fields produced a
+literal "Hi name," greeting — empty-contact-field handling is a future
+prompt-cycle candidate, tagged in the tally. Second observation: a
+"Frequent Guest" lead-source answer implies the 2.14 repeat-customer
+shortcut the agent cannot know without account history — logged, out of
+scope by design. CONTRAST for the qd/needs-info evidence pile: this
+needs_info draft DID ask for something (menu choice + address), unlike
+the CRM-v0 mismatch case.
+
+Process findings:
+- Set-Content -Encoding UTF8 (PS 5.1) writes a BOM; it landed in a
+  commit message via the msg.txt recipe and was caught pre-push (commit
+  amended, now 39c3000, clean). AMENDED RECIPE: for plain-ASCII
+  messages use git commit -m directly; for messages needing msg.txt
+  (dollar signs, quotes), write it with -Encoding ascii or
+  [System.IO.File]::WriteAllText, never -Encoding UTF8.
+- Paste-accident note: the v0.1 patcher was initially pasted line-by-
+  line into PowerShell instead of saved; harmless (every line rejected,
+  pilot_v0.py untouched, verified via git status before proceeding).
+  Patcher was then written via single-quoted here-string, ran clean
+  (4 anchors exactly-once), and was deleted after commit, not tracked.
+
+Backlog deltas: qd ruling still OPERATOR/AGING (the contrast row above
+is new adjacent evidence). gmail-pull intake friction evidence now
+accruing per shadow run (manual event-id + inquiry copy, as predicted).
+Everything else unchanged from the v0.1 brief.
+
+Next session gates: qd ruling before any prompt session; shadow week
+accrues rows via --attach runs, no session needed per run.
