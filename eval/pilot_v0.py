@@ -296,11 +296,14 @@ def run_one_from_db(client: Anthropic, rows_by_id: dict[str, InboundRow],
     render(inquiry_id, row.inquiry_text, output)
 
 
-def run_one_from_text(client: Anthropic, text: str, push: bool = False) -> None:
+def run_one_from_text(client: Anthropic, text: str, push: bool = False,
+                      attach_id: str | None = None) -> None:
     output = qualify(client, text)
     render(None, text, output)
     if push:
         _push_to_crm(text, output)
+    if attach_id:
+        _attach_to_crm(attach_id, output)
 
 
 
@@ -352,6 +355,24 @@ def _push_to_crm(inquiry_text: str, output) -> None:
     print()
 
 
+def _attach_to_crm(event_id: str, output) -> None:
+    """Opt-in draft-attach to an EXISTING CRM event (Typeform leads arrive
+    via webhook; push_lead would duplicate them). push_draft only, ever."""
+    if output.status.value in ("declined", "human_review"):
+        print("ATTACH skipped: draft withheld for this status; no CRM write by design.")
+        print()
+        return
+    import crm_push
+    answer = _prompt_console(f"attach draft to event {event_id}? (y/N): ")
+    if answer.lower() != "y":
+        print("ATTACH aborted: not confirmed.")
+        print()
+        return
+    draft_id = crm_push.push_draft(event_id, output.draft_response.strip())
+    print(f"ATTACHED: event {event_id}  draft {draft_id}")
+    print()
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="v0 pilot: print one draft + checks for one inbound.")
     ap.add_argument("--id", action="append", default=[],
@@ -363,9 +384,20 @@ def main() -> None:
     ap.add_argument("--db", default=DEFAULT_DB, help="path to labels.db")
     ap.add_argument("--push", action="store_true",
                     help="after the draft, offer to push lead+draft to the CRM (stdin runs only)")
+    ap.add_argument("--attach", metavar="EVENT_ID", default=None,
+                    help="after the draft, offer to attach it to an EXISTING CRM event "
+                         "(Typeform leads; stdin runs only; never creates a lead)")
     args = ap.parse_args()
     if args.push and not args.stdin:
         ap.error("--push works only with --stdin (corpus rows are historical, not live leads)")
+    if args.attach and args.push:
+        ap.error("--attach and --push are mutually exclusive (attach never creates a lead)")
+    if args.attach and not args.stdin:
+        ap.error("--attach works only with --stdin (corpus rows are historical, not live leads)")
+    if args.attach and not re.fullmatch(
+            r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}"
+            r"-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}", args.attach):
+        ap.error(f"--attach id does not look like a UUID: {args.attach!r}")
 
     rows = load_gradeable_inbounds(args.db)
     rows_by_id = {r.inquiry_id: r for r in rows}
@@ -384,7 +416,7 @@ def main() -> None:
         if not text.strip():
             print("stdin was empty — nothing to run.")
             return
-        run_one_from_text(client, text, push=args.push)
+        run_one_from_text(client, text, push=args.push, attach_id=args.attach)
         return
 
     if not args.id:
