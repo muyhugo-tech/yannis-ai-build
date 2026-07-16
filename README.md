@@ -2,7 +2,7 @@
 
 An AI-powered catering inquiry triage agent for a real, operating
 restaurant: Yanni's Bar & Grill, a 20+ year family-owned Mediterranean
-restaurant in San Diego. Built by the operator (14 years running the
+restaurant in San Diego. Built by the operator (3 years running the
 catering side) as both a production tool and a working demonstration of
 eval-first agent engineering.
 
@@ -36,7 +36,7 @@ decisions. Prompt caching from the first commit.
 
 The eval harness shipped before the agent did, validated against a stub
 returning garbage to prove the metrics were sensible independent of any
-agent. The labeled dataset is built from 14 years of real inquiry
+agent. The labeled dataset is built from 3 years of real inquiry
 history: currently 168 ingested threads, 166 labeled, 160 gradeable eval
 rows, 73 clean cold inbounds. Labels encode the operator's actual
 historical decisions, not idealized ones.
