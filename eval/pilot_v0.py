@@ -412,7 +412,7 @@ def main() -> None:
     client = Anthropic()
 
     if args.stdin:
-        text = sys.stdin.read()
+        text = sys.stdin.buffer.read().decode('utf-8')
         if not text.strip():
             print("stdin was empty — nothing to run.")
             return
