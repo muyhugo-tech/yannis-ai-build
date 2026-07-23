@@ -2183,3 +2183,87 @@ Effect: the qd gate on prompt sessions is LIFTED. Current regime is
 full review (shadow week), so qd = watch-item today. The needs_info
 decision-draft evidence pile remains relevant to future qd triage but
 no longer blocks anything.
+
+## Session GP-v1 close — gmail-pull intake (2026-07-23)
+
+**Shipped:** gmail_pull.py at repo root (3db3b38) — read-only Gmail fetch of the
+latest Typeform notification; stderr preview + y/N confirm gate; --list N /
+--pick I escape hatch; body to stdout as UTF-8 bytes. Pilot patch 1 (232c898):
+--stdin reads bytes, explicit UTF-8 decode — pipe-safe on Windows, loud fail on
+bad encoding. Proven end-to-end on one real notification (Jul 22 lead):
+fetch -> confirm -> pipe -> qualify -> draft -> voice checks, zero paste.
+Danger cells held on a real 30-guest inquiry: buffet stated, plated not
+volunteered, no pricing disclosed.
+
+**Operator amendment (recorded per session brief):** gmail-pull was gated on
+shadow-week friction evidence. Operator pulled it forward 2026-07-13 after two
+live runs. Ruling: build infrastructure first, refine from use. Friction
+evidence at pull-forward: manual inquiry-text paste + manual event-id copy on
+both shadow runs.
+
+**Design rulings (argued both sides, operator accepted recommendations):**
+(a) selection — fixed subject query ("New response for YBG Event QuoteBot"),
+latest match regardless of read state, terminal preview + y/N confirm;
+--list/--pick escape hatch for close-together inquiries. Unread-flag selection
+rejected: breaks on phone-read, and no label-write in scope to manage state.
+(b) location — repo root, single file, same convention as crm_push.py.
+Exporter repo rejected (cross-repo runtime dependency); eval\ rejected
+(misdescribes architecture, third path-discipline exception).
+(c) handoff — pipe, not --file: raw email never touches disk. Two-venv
+conflict surfaced during build (gmail_pull needs .venv, pilot needs venv, a
+pipe is one command line): resolved with both interpreters explicit in the
+pipe, run from eval\ so pilot keeps required cwd, gmail_pull resolving
+credentials/token paths from its own script location, never cwd. Encoding
+contract: explicit UTF-8 bytes on both sides of the pipe, no PYTHONUTF8
+env dependence.
+
+**Verified facts (bytes, this session):** notification sender is
+notifications@followups.typeform.io (subject-anchor query caught it; sender
+was unknown before OAuth run). Consent URL scope was gmail.readonly only —
+read-only contract confirmed at the authorization layer. List order
+newest-first. credentials.json, token.json, .env all confirmed check-ignored.
+
+**Watch-items (v1.1 candidates, NOT commitments):**
+- charset: Typeform en-dash mojibake ("$1,000 ??? $3,000") in agent input —
+  decode assumes UTF-8 and ignores the MIME part charset param. Cause
+  confidence moderate. No output damage this run (draft did not echo budget).
+- body noise: Typeform footer, admin links, tracking token enter agent input.
+  Stripping is a refinement, B-before-C class — evidence first.
+- Typeform's own Score / tag_lead_quality fields ride along in the body.
+  Curiosity only; never a feature without testing (Section 4 discipline).
+- token refresh: stale/expired token.json crashes RefreshError instead of
+  falling through to fresh consent. Loud crash is contract-compliant today;
+  fallback-to-consent is a refinement.
+- pilot API-key sourcing is per-shell ambient state (no dotenv anywhere in
+  pilot/agent_v3) — remembered-environment fragility class. Dotenv load is a
+  separate future commit, not wired this session.
+
+**Process errors (logged honestly):**
+- Multi-line patch script presented as a paste-ready code block; operator
+  pasted it into cmd and every line executed as a shell command (no damage;
+  the PRN error was a print attempt). Switched to one-line python -c patches
+  and downloadable files for anything multi-line. Rule reinforced: never
+  present multi-line code for terminal paste.
+- Assumed the exporter repo existed locally at C:\dev\gmail-catering-exporter.
+  It does not exist on this machine — but credentials.json AND a stale
+  token.json were already sitting at repo root, invisible to git status
+  because both are ignored, and missed by a disk search scoped to the user
+  profile. Caused an unnecessary Cloud Console detour. Lesson: ignored files
+  are invisible to git-status verification — dir the actual bytes before
+  declaring a file absent.
+- git add eval/pilot_v0.py failed when run from eval\ (git pathspecs resolve
+  relative to cwd); corrected to the cwd-relative filename.
+- Stale exporter token.json short-circuited the fresh-consent path
+  (invalid_grant crash). Deleted; fresh flow succeeded. Consent auto-opened
+  the wrong browser; resolved via the terminal localhost URL fallback.
+
+**Tally update:** cold n=9 (Adv 2 / Salv 3 / Stall 4). Second shadow-attach
+row committed at 44faa4d (150-guest offsite, Salvageable). Second
+empty-contact-greeting occurrence — now a confirmed repeating Typeform-path
+bug, not today's variable. New failure signal in row 2: fee-inconsistency —
+morning run deferred the within-15mi delivery fee, afternoon run asserted it,
+same fact pattern. Model-sampled fee behavior; exact class the determinism
+principle assigns to tools. Watch-item, not today's variable.
+
+**Commits this session:** 44faa4d (tally row 2), 232c898 (pilot stdin UTF-8),
+3db3b38 (gmail_pull.py), plus this STATE close.
