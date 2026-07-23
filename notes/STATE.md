@@ -2267,3 +2267,46 @@ principle assigns to tools. Watch-item, not today's variable.
 
 **Commits this session:** 44faa4d (tally row 2), 232c898 (pilot stdin UTF-8),
 3db3b38 (gmail_pull.py), plus this STATE close.
+
+## GP-v1 amendment — scanner record (2026-07-23, same sitting)
+
+**Scanner identity correction.** The "main scanner" of the standing rule is
+labeling/scan_pii_history.py — 48 name variants after expansion, exit-2
+inverted control. audit_pii.py is a THIRD auditor (backup-DB email/phone
+sweep, exit 0 + review-mode findings), not the main. This session initially
+misidentified audit_pii.py as the main by filename plausibility; the aux
+run's term line (name=48) exposed the mismatch. Recorded so the
+archaeology never repeats.
+
+**Verbatim invocations (all from repo root):**
+- MAIN:  python labeling\scan_pii_history.py
+  PASS signature = exit 2 + nonzero derived terms (48) + zero name hits.
+  The "SCANNER BROKEN" banner on zero STATE name-hits IS the post-rewrite
+  pass banner (inverted control, pre-answered ruling).
+- AUX:   python labeling\scan_pii_aux.py --post-rewrite
+- THIRD (optional bonus coverage):
+  python audit_pii.py labeling\labels_backup_2026-06-05.db --names-file labeling\audit_names_local.txt
+  Pass bar = zero CUSTOMER findings; exit 0 with review-mode output is
+  normal for this tool, not a failure.
+
+**This push's results.** Main: exit 2, 48 variants, name hits 0, one
+email-kind hit total — cd3ecee notes/STATE.md:2221, the vendor system
+sender recorded there as a verified fact this session. OPERATOR RULING:
+KEEP. Vendor infrastructure address, same class as the google bounce
+daemon precedent already in tracked files; not customer PII under the
+project definition. Future refinement, not this session: vendor-domain
+allowlist in the scanner. PREDICTED GROWTH: STATE.md is append-only, so
+every future STATE commit creates a blob re-carrying line 2221 — expect
++1 email hit per STATE commit, same term, same triage. Delta-triage rule
+now applies to this term exactly as it does to the aux name-44 baseline.
+Aux: B-GUARD reachable 0, A-TERM 0, name-44 B-SUB 2107 reachable —
+mechanical baseline growth, delta consistent with this session's STATE
+append. Third auditor: 53 findings, identical across the 06-05 and 06-11
+backups, all synthetic fixtures / reserved 555-01xx range / vendor infra;
+zero customer findings.
+
+**Term-count note.** The recorded "48 terms" acceptance signature belongs
+to the main scanner's variant expansion (30 union names -> 48 variants).
+audit_pii.py derives 15 (8 DB + 7 names-file) — a different derivation,
+stable across both backups. The two numbers were never comparable; the
+earlier attempt to reconcile them was chasing a category error.
